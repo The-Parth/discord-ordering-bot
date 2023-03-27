@@ -1,4 +1,4 @@
-ITEM,COST,DESCRIPTION,PREPERATION TIME
+ITEM,COST,DESC,TIME
 Coffee,20,Caffeine rich morning starter, 5 minutes
 Tea,10,Herbal infusion, 5 minutes
 Cappuccino,30,Espresso and steamed milk, 10 minutes

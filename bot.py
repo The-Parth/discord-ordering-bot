@@ -6,21 +6,12 @@ import csv
 from extras import Checkers, Utils
 from dotenv import load_dotenv
 import datetime
+import json
 
 
 load_dotenv()
-carts = {
-    0: {
-        "item": {
-            "quantity" 
-        }
-    },
-    1: {
-        "i1": 1,
-        "i2": 2
-    }
-}
 
+carts = json.loads(open("carts.json", "r").read())
 
 intents = discord.Intents.all()
 bot = discord.Client(intents=intents)
@@ -29,21 +20,9 @@ owners = [354546286634074115]
 
 
 class CartActions(app_commands.Group):
-    global carts
-
     @app_commands.command(name="view", description="View your current cart")
     async def view(self, interaction: discord.Interaction):
-        uid = interaction.user.id
-        cart = {}
-        if uid in carts:
-            cart = carts[uid]
-        else:
-            carts[uid] = {}
-            cart = {}
-        if cart == {}:
-            await interaction.response.send_message("Your Cart is empty. Please use /cart build to start adding items!", ephemeral=True)
-            print(carts)
-
+        
     @view.error
     async def view_error(interaction, error):
         embed = discord.Embed(title="Error!",
