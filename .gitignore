@@ -1,0 +1,5 @@
+.env
+*.env
+dk
+__pycache__
+tempCodeRunnerFile.py
