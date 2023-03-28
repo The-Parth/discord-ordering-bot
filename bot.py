@@ -3,7 +3,7 @@ from discord import app_commands
 import os
 import asyncio
 import csv
-from extras import Checkers, Utils
+from extras import Checkers, Utils, Fun
 from dotenv import load_dotenv
 import datetime
 import json
@@ -11,7 +11,6 @@ import json
 
 load_dotenv()
 
-carts = json.loads(open("carts.json", "r").read())
 
 intents = discord.Intents.all()
 bot = discord.Client(intents=intents)
@@ -22,9 +21,33 @@ owners = [354546286634074115]
 class CartActions(app_commands.Group):
     @app_commands.command(name="view", description="View your current cart")
     async def view(self, interaction: discord.Interaction):
-        
+        filepath = os.path.dirname(os.path.abspath(
+            __file__)) + "\data\carts\{0}.json".format(interaction.user.id)
+        filepath = Utils.path_finder(filepath)
+        if not os.path.isfile(filepath):
+            with open(filepath, "w") as f:
+                json.dump({}, f, indent=2)
+        f = json.load(open(filepath, "r"))
+        if f == {}:
+            embed = discord.Embed(title="Your Cart is Empty",
+                                  description="Your cart is empty, add something to it!",
+                                  color=0x57eac8)
+            embed.set_footer(text="If you need help, use /help")
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+        else:
+            menu_string = ""
+            # Formats the menu string in the format of "Item(Price) x Quantity..........Total"
+            for item in f:
+                menu_string += "**{0}**(*₹{1}*) x **{2}**..........**₹{3}**\n".format(
+                    item, f[item]['rate'], f[item]['quantity'], f[item]['rate'] * f[item]['quantity'])
+            embed = discord.Embed(title="Your Cart",
+                                  description=menu_string,
+                                  color=0x57eac8)
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+
     @view.error
-    async def view_error(interaction, error):
+    async def view_error(self, interaction: discord.Interaction, error):
         embed = discord.Embed(title="Error!",
                               description=str(error),
                               color=0xc6be0f)
@@ -177,11 +200,10 @@ async def tip_error(interaction: discord.Interaction, error):
 )
 async def new_menu(interaction: discord.Interaction,
                    page: app_commands.Range[int, 1, None] = 1):
-    with open('newmenu.csv', 'r') as f:
-        reader = csv.reader(f)
-        menu = list(reader)
-
-    menu.remove(menu[0])
+    filepath = os.path.dirname(os.path.abspath(
+        __file__)) + "/data/menus/newmenu.json"
+    filepath = Utils.path_finder(filepath)
+    menu = json.load(open(filepath, "r"))
     menu_pages = Utils.list_divider(menu, 5)
     overflow_flag = False
     if page > len(menu_pages):
@@ -254,7 +276,6 @@ async def on_message(message: discord.Message):
         await bot.close()
     if message.content.lower().startswith(";;del") and message.author.id in owners:
         ls = message.content.split()
-        await message.delete()
         if len(ls) >= 2:
             for i in ls[1:]:
                 try:
@@ -262,5 +283,14 @@ async def on_message(message: discord.Message):
                     await msg.delete()
                 except:
                     pass
+            try:
+                await message.delete()
+            except:
+                pass
 
+
+@tree.command(name="tictactoe",description="plays tictactoe")
+async def tic(ctx: discord.Interaction):
+    """Starts a tic-tac-toe game with yourself."""
+    await ctx.response.send_message('Tic Tac Toe: X goes first', view=Fun.TicTacToe())
 bot.run(os.getenv("TOKEN"))
