@@ -1,0 +1,140 @@
+[
+  {
+    "ITEM": "Coffee",
+    "COST": "20",
+    "DESC": "Caffeine rich morning starter",
+    "TIME": " 5 minutes"
+  },
+  {
+    "ITEM": "Tea",
+    "COST": "10",
+    "DESC": "Herbal infusion",
+    "TIME": " 5 minutes"
+  },
+  {
+    "ITEM": "Cappuccino",
+    "COST": "30",
+    "DESC": "Espresso and steamed milk",
+    "TIME": " 10 minutes"
+  },
+  {
+    "ITEM": "Espresso",
+    "COST": "30",
+    "DESC": "Concentrated coffee",
+    "TIME": " 7 minutes"
+  },
+  {
+    "ITEM": "Latte",
+    "COST": "40",
+    "DESC": "Espresso and steamed milk",
+    "TIME": " 10 minutes"
+  },
+  {
+    "ITEM": "Hot Chocolate",
+    "COST": "40",
+    "DESC": "Chocolate, milk and sugar",
+    "TIME": " 10 minutes"
+  },
+  {
+    "ITEM": "Hot Water",
+    "COST": "0",
+    "DESC": "Just hot water",
+    "TIME": " 5 minutes"
+  },
+  {
+    "ITEM": "Chicken",
+    "COST": "120",
+    "DESC": "Classic Snack for the homies",
+    "TIME": " 14 minutes"
+  },
+  {
+    "ITEM": "Wings",
+    "COST": "110",
+    "DESC": "Chomp Chomp",
+    "TIME": " 15 minutes"
+  },
+  {
+    "ITEM": "Burger",
+    "COST": "100",
+    "DESC": "Classic American",
+    "TIME": " 10 minutes"
+  },
+  {
+    "ITEM": "Sandwich",
+    "COST": "90",
+    "DESC": "Two slices of bread enclosing veggies",
+    "TIME": " 10 minutes"
+  },
+  {
+    "ITEM": "Pizza",
+    "COST": "210",
+    "DESC": "Italian flatbread",
+    "TIME": " 15 minutes"
+  },
+  {
+    "ITEM": "Pasta",
+    "COST": "140",
+    "DESC": "Italian delicacy;Saucy",
+    "TIME": " 12 minutes"
+  },
+  {
+    "ITEM": "Soup",
+    "COST": "80",
+    "DESC": "Hot and tasty",
+    "TIME": " 10 minutes"
+  },
+  {
+    "ITEM": "Salad",
+    "COST": "80",
+    "DESC": "Healthy and tasty",
+    "TIME": " 10 minutes"
+  },
+  {
+    "ITEM": "Maggi",
+    "COST": "30",
+    "DESC": "Indian style noodles ",
+    "TIME": " 2 minutes"
+  },
+  {
+    "ITEM": "Momos",
+    "COST": "50",
+    "DESC": "Indian style dumplings",
+    "TIME": " 10 minutes"
+  },
+  {
+    "ITEM": "Dosa",
+    "COST": "60",
+    "DESC": "Indian style crepe",
+    "TIME": " 10 minutes"
+  },
+  {
+    "ITEM": "Idli",
+    "COST": "50",
+    "DESC": "Indian style cake",
+    "TIME": " 10 minutes"
+  },
+  {
+    "ITEM": "Vada",
+    "COST": "40",
+    "DESC": "Indian style fritters",
+    "TIME": " 10 minutes"
+  },
+  {
+    "ITEM": "Poha",
+    "COST": "40",
+    "DESC": "Indian style flattened rice",
+    "TIME": " 5 minutes"
+  },
+  {
+    "ITEM": "Choupsey",
+    "COST": "40",
+    "DESC": " What da dog doin",
+    "TIME": " 5 minutes"
+  },
+  {
+    "ITEM": "Biryani",
+    "COST": "150",
+    "DESC": "Indian style delicacy RICE",
+    "TIME": " 15 minutes"
+  }
+]

@@ -1,0 +1,11 @@
+Wind energy is a sustainable and environmentally friendly way to generate electricity.
+Wind accounts for approximately 10% of global electricity production.
+A wind turbine can generate up to 6 million kWh annually.
+Researchers from Nanyang Technological University (NTU) in Singapore have designed a low-cost wind harvester that can generate electricity at low wind speeds.
+The harvester can generate up to 3 volts and 290 microwatts of electricity.
+Aeromine Technologies has developed a novel bladeless wind energy technology compatible with domestic solar power and electricity systems.
+SeaTwirl, a Swedish turbine company, deployed vertical-axis wind turbines with a tower coupled to a subsea construction comprised of a keel and floating element.
+Scientists from the National Renewable Energy Laboratory (NREL) and the Sandia National Laboratories (SNL) are collaborating to construct 206-meter rotors for land-based turbines.
+Wind Catching Systems (WCS) will commercialize its floating wind harvesting technology for offshore wind farms in collaboration with the institute of energy technology and the Norwegian energy service provider Aibel.
+Global wind electricity production grew by a record 273 TWh in 2021.
+To meet net zero by 2050, average annual capacity additions must be increased to almost 250 GW.

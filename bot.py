@@ -54,6 +54,101 @@ class CartActions(app_commands.Group):
         embed.set_footer(text="Please message staff")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
+    @app_commands.command(name="build", description="Build your cart!")
+    async def build(
+            self, interaction:
+            discord.Interaction,
+            page: app_commands.Range[int, 1, None] = 1):
+        filepath = os.path.dirname(os.path.abspath(
+            __file__)) + "/data/menus/newmenu.json"
+        filepath = Utils.path_finder(filepath)
+        with open(filepath, "r") as f:
+            menu = json.load(f)
+        menu_pages = Utils.list_divider(menu, 10)
+        overflow_flag = False
+        if page > len(menu_pages):
+            page = len(menu_pages)
+            overflow_flag = True
+        embed = Utils.cartbuilder_paginate(menu_pages, page)
+
+        class BuildView(discord.ui.View):
+            current_page = page
+            max_pages = len(menu_pages)
+
+            def __init__(self):
+                super().__init__(timeout=90)
+                self.update_buttons()
+
+            async def on_timeout(self) -> None:
+                item: discord.ui.Item
+                for item in self.children:
+                    item.disabled = True
+                self.message: discord.Message
+                await self.message.edit(content="Menu Expired", view=self)
+
+            def update_buttons(self):
+                if self.current_page == 1:
+                    self.prev.disabled = True
+                    self.prev.style = discord.ButtonStyle.grey
+                else:
+                    self.prev.disabled = False
+                    self.prev.style = discord.ButtonStyle.green
+                if self.current_page == self.max_pages:
+                    self.next.disabled = True
+                    self.next.style = discord.ButtonStyle.grey
+                else:
+                    self.next.disabled = False
+                    self.next.style = discord.ButtonStyle.green
+
+                ls = []
+                for i in menu_pages[self.current_page - 1]:
+                    print(i)
+                    ls.append(discord.SelectOption(
+                        label=i['ITEM'] + " : ₹{0}".format(i['COST']), description="In Cart {0}".format(0), value=i['ITEM']))
+                self.select1.options = ls
+
+            @discord.ui.button(label="Previous", style=discord.ButtonStyle.green, row=2)
+            async def prev(self, interaction: discord.Interaction, button: discord.ui.Button):
+                if interaction.user.id is not self.og_author:
+                    await interaction.response.send_message("You can't do that!", ephemeral=True)
+                    return
+                self.current_page -= 1
+                self.update_buttons()
+                embed = Utils.cartbuilder_paginate(
+                    menu_pages, self.current_page)
+                await interaction.response.edit_message(content=None, embed=embed, view=self)
+
+            @discord.ui.button(label="Next", style=discord.ButtonStyle.green, row=2)
+            async def next(self, interaction: discord.Interaction, button: discord.ui.Button):
+                print(interaction.user)
+                if interaction.user.id is not self.og_author:
+                    await interaction.response.send_message("You can't do that!", ephemeral=True)
+                    return
+                self.current_page += 1
+                self.update_buttons()
+                embed = Utils.cartbuilder_paginate(
+                    menu_pages, self.current_page)
+                await interaction.response.edit_message(content=None, embed=embed, view=self)
+
+            @discord.ui.select(placeholder="Select an option", max_values=1, min_values=1, row=0, options=[
+                discord.SelectOption(
+                    label="Option 1", emoji="👌", description="Placeholder 1"),
+            ])
+            async def select1(self, interaction: discord.Interaction, select: discord.ui.Select):
+                if interaction.user.id is not self.og_author:
+                    await interaction.response.send_message("You can't do that!", ephemeral=True)
+                    return
+                await interaction.response.send_message(content=f"Your choice is {select.values[0]}!", ephemeral=True)
+
+        builder_view = BuildView()
+        if overflow_flag:
+            await interaction.response.send_message("That page doesn't exist! Here's the last page instead.", embed=embed, view=builder_view)
+        else:
+            await interaction.response.send_message(embed=embed, view=builder_view)
+        builder_view.message = await interaction.original_response()
+        builder_view.og_author = interaction.user.id
+        print(builder_view.og_author)
+
 
 @bot.event
 async def on_ready():
@@ -289,7 +384,7 @@ async def on_message(message: discord.Message):
                 pass
 
 
-@tree.command(name="tictactoe",description="plays tictactoe")
+@tree.command(name="tictactoe", description="plays tictactoe")
 async def tic(ctx: discord.Interaction):
     """Starts a tic-tac-toe game with yourself."""
     await ctx.response.send_message('Tic Tac Toe: X goes first', view=Fun.TicTacToe())

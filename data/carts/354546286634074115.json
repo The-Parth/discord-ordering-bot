@@ -1,0 +1,11 @@
+{
+    "item1": {
+      "quantity": 3,
+      "rate": 120
+    },
+    "item2": {
+      "quantity": 2,
+      "rate": 150
+    }
+  }
+  

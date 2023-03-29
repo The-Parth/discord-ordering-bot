@@ -41,12 +41,26 @@ class Utils():
 
         embed.set_footer(text=f"Page {page} of {len(menu_pages)}")
         return embed
-    
+
+    def cartbuilder_paginate(menu_pages, page) -> discord.Embed:
+        embed = discord.Embed(title="Cart",
+                              description="Add or remove items from your cart here",
+                              color=0xf7b51d,
+                              timestamp=datetime.datetime.now())
+        for i in menu_pages[page-1]:
+            f1 = ''+i["ITEM"] + ": Rs "+i["COST"]+"."
+            f2 = i["DESC"].strip()
+            embed.add_field(name=f1, value=f2, inline=False)
+
+        embed.set_footer(text=f"Page {page} of {len(menu_pages)}")
+        return embed
+
     def path_finder(path):
         if os.name == "nt":
-            return path.replace("/","\\")
+            return path.replace("/", "\\")
         else:
-            return path.replace("\\","/")
+            return path.replace("\\", "/")
+
 
 class Fun():
     class TicTacToeButton(discord.ui.Button['TicTacToe']):
@@ -92,8 +106,8 @@ class Fun():
 
             await interaction.response.edit_message(content=content, view=view)
 
-
     # This is our actual board View
+
     class TicTacToe(discord.ui.View):
         X = -1
         O = 1
@@ -107,7 +121,7 @@ class Fun():
                 [0, 0, 0],
                 [0, 0, 0],
             ]
-            
+
             for x in range(3):
                 for y in range(3):
                     self.add_item(Fun.TicTacToeButton(x, y))
@@ -123,7 +137,8 @@ class Fun():
 
             # Check vertical
             for line in range(3):
-                value = self.board[0][line] + self.board[1][line] + self.board[2][line]
+                value = self.board[0][line] + \
+                    self.board[1][line] + self.board[2][line]
                 if value == 3:
                     return self.O
                 elif value == -3:
