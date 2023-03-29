@@ -19,15 +19,25 @@ owners = [354546286634074115]
 
 
 class CartActions(app_commands.Group):
+    """Command group for cart actions, placed in the cart command group"""
+    
     @app_commands.command(name="view", description="View your current cart")
     async def view(self, interaction: discord.Interaction):
+        """View your current cart"""
+        # Gets the filepath of the cart json file for the user, and creates it if it doesn't exist'
         filepath = os.path.dirname(os.path.abspath(
             __file__)) + "\data\carts\{0}.json".format(interaction.user.id)
+        # Makes it fit your OS
         filepath = Utils.path_finder(filepath)
+        
+        # Creates the file if it doesn't exist
         if not os.path.isfile(filepath):
             with open(filepath, "w") as f:
                 json.dump({}, f, indent=2)
+        # Loads the file
         f = json.load(open(filepath, "r"))
+        
+        # Checks if the cart is empty
         if f == {}:
             embed = discord.Embed(title="Your Cart is Empty",
                                   description="Your cart is empty, add something to it!",
@@ -43,11 +53,14 @@ class CartActions(app_commands.Group):
             embed = discord.Embed(title="Your Cart",
                                   description=menu_string,
                                   color=0x57eac8)
+            
+            # Sends the cart
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
 
     @view.error
     async def view_error(self, interaction: discord.Interaction, error):
+        """Error handler for the view command"""
         embed = discord.Embed(title="Error!",
                               description=str(error),
                               color=0xc6be0f)
@@ -59,6 +72,7 @@ class CartActions(app_commands.Group):
             self, interaction:
             discord.Interaction,
             page: app_commands.Range[int, 1, None] = 1):
+        """Build your cart!"""
         filepath = os.path.dirname(os.path.abspath(
             __file__)) + "/data/menus/newmenu.json"
         filepath = Utils.path_finder(filepath)
@@ -164,6 +178,7 @@ async def on_ready():
 
 
 async def status_task():
+    """Changes the bot's status every 150 seconds"""
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="your Cart"))
     await asyncio.sleep(150)
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="your Orders"))
@@ -187,12 +202,18 @@ async def place_order(interaction: discord.Interaction):
 
 @place_order.error
 async def place_order_error(interaction: discord.Interaction, error):
+    """ Custom error handler for the place_order command."""
+    # Embed to send in the response
     embed = discord.Embed(title="Works in DMs only!",
                           description="Please direct message the bot.",
                           color=0xc6be0f)
+
+    # Create a view with a button that links to the DM channel
     view = discord.ui.View()
     dm = await interaction.user.create_dm()
     view.add_item(item=discord.ui.Button(label="Go to DMs", url=dm.jump_url))
+
+    # Send the response
     await interaction.response.send_message(embed=embed, ephemeral=True, view=view)
 
 
@@ -205,17 +226,28 @@ async def place_order_error(interaction: discord.Interaction, error):
 async def tip(interaction: discord.Interaction,
               amount: app_commands.Range[int, 1, None],
               email: str):
+    """Function to send tips to the restaurant (bot owner) using invoices (powered by Coinbase Commerce)"""
+    """To be used in DMs only, and real money is involved, so be careful"""
+
+    # check if email is valid using regex
     import re
     if (re.fullmatch(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b', email)):
         pass
     else:
+        # Error message if email is invalid
         await interaction.response.send_message("Invalid email address!", ephemeral=True)
         return
+
+    # Commented out for testing purposes
     # await interaction.response.send_message(f"A measly {amount}, sadge, sent invoice to {email},{interaction.user}")
     from payments import Payment
+    # Generate a unique memo for the invoice using the user's name and the amount
     memo = str(interaction.user.id) + \
         f": Tip from {str(interaction.user)} of INR {amount}"
+    # Create the invoice using the Coinbase Commerce API in payments.py
     inv = Payment.invoice(str(interaction.user), email, amount, "INR", memo)
+
+    # Make an the invoice with a button to pay the invoice
     embed = discord.Embed(title=f"Invoice {inv['code']} created!",
                           description=f"Payment link : {inv['url']}",
                           color=0xc6be0f)
@@ -224,15 +256,27 @@ async def tip(interaction: discord.Interaction,
     embed.add_field(name="Tx. ID", value=str(inv['id']), inline=True)
     view = discord.ui.View()
     view.add_item(item=discord.ui.Button(label="Make Payment", url=inv['url']))
+
+    # Send the invoice to the user
     await interaction.response.send_message(embed=embed, view=view)
     msg = await interaction.original_response()
     count = 0
     flag_check_coming = False
     while True:
+        """
+        Check for payment status every 10 seconds, and notify the user when the payment is complete
+        done using the Coinbase Commerce API in payments.py
+        this function below is a coroutine, so it can be awaited
+        this makes sure that the bot doesn't get blocked while waiting for the payment to complete
+        """
         stats = check_payments(inv)
         count += 1
+        # print every 10 seconds for debugging purposes
         print(f"{count}. Payment Stats for {inv['code']} = {stats}")
+
+        # check status every 10 seconds
         if stats == 'PAYMENT_PENDING' and flag_check_coming == False:
+            """Case when the payment is marked as pending, and the user hasn't been notified yet"""
             flag_check_coming = True
             embed = discord.Embed(title=f"Payment for Invoice {inv['code']} Pending!",
                                   description=f"Check status here : {inv['url']}",
@@ -240,7 +284,9 @@ async def tip(interaction: discord.Interaction,
             embed.set_footer(
                 text="We will notify you when the payment is complete.")
             await msg.reply(embed=embed)
+
         if stats == 'PAID':
+            """Case when the payment is complete, and the user hasn't been notified yet"""
             embed = discord.Embed(title=f"Invoice {inv['code']} Paid Successfully!",
                                   description=f"View Charge : {inv['url']}",
                                   color=0x20e364)
@@ -253,39 +299,53 @@ async def tip(interaction: discord.Interaction,
             view.add_item(item=discord.ui.Button(
                 label="View Charge", url=inv['url']))
             await msg.reply(embed=embed, view=view)
-            break
+            break  # break out of the loop
+
         if stats == 'VOID':
+            """Case when the invoice is voided, and the user hasn't been notified yet"""
             embed = discord.Embed(title=f"Invoice {inv['code']} Voided!",
                                   description=f"Your invoice with id {inv['id']} of INR {amount} has been voided and can no longer be paid.",
                                   color=0xd62d2d)
             embed.set_footer(
                 text="This is usually due to staff interruption.")
             await msg.reply(embed=embed)
-            break
+            break  # break out of the loop
+
         if stats == 'EXPIRED':
+            """Case when the invoice is expired, and the user hasn't been notified yet"""
             embed = discord.Embed(title=f"Invoice {inv['code']} Expired!",
                                   description=f"Your invoice with id {inv['id']} of INR {amount} has expired and can no longer be paid. Please make sure to pay within 60 minutes of placing the order.",
                                   color=0xd62d2d)
             embed.set_footer(text="You can try again with a new invoice.")
             await msg.reply(embed=embed)
+            break  # break out of the loop
+
         if stats == 'UNRESOLVED':
+            """Case when the invoice is in an unresolved state, and the user hasn't been notified yet"""
             embed = discord.Embed(title=f"Invoice {inv['code']} needs attention!",
                                   description=f"Your invoice with id {inv['id']} of INR {amount} is in an unresolved state. Please contact us for more information.",
                                   color=0xd62d2d)
             embed.set_footer("This may be due to underpayment or overpayment.")
             await msg.reply(embed=embed)
+            break  # break out of the loop
+
+        # sleep for 10 seconds before checking again
         await asyncio.sleep(10)
 
 
 @tip.error
 async def tip_error(interaction: discord.Interaction, error):
+    """If the user is not in DMs, send them a message to go to DMs."""
+    # Embed to send to the user
     embed = discord.Embed(title="Works in DMs only!",
                           description="Please direct message the bot.",
                           color=0xc6be0f)
     embed.set_footer(text="If this was in DMs, an inadvertent error occured.")
+    # View to send to the user containing a button to go to DMs
     view = discord.ui.View()
     dm = await interaction.user.create_dm()
     view.add_item(item=discord.ui.Button(label="Go to DMs", url=dm.jump_url))
+    # Send the message with the embed and view
     await interaction.response.send_message(embed=embed, ephemeral=True, view=view)
 
 
@@ -295,33 +355,47 @@ async def tip_error(interaction: discord.Interaction, error):
 )
 async def new_menu(interaction: discord.Interaction,
                    page: app_commands.Range[int, 1, None] = 1):
+    """
+    Displays the menu, paginated by 5 items per page.
+    Also has a view for navigating the menu.
+    """
     filepath = os.path.dirname(os.path.abspath(
-        __file__)) + "/data/menus/newmenu.json"
+        __file__)) + "/data/menus/newmenu.json"  # open the menu file
+    # change the path to the one for your system
     filepath = Utils.path_finder(filepath)
+    # load the menu
     menu = json.load(open(filepath, "r"))
+    # divide the menu into pages of 5 items each
     menu_pages = Utils.list_divider(menu, 5)
+    # flag to check if the page number is greater than the number of pages
     overflow_flag = False
-    if page > len(menu_pages):
+    if page > len(menu_pages):  # if the page number is greater than the number of pages
         page = len(menu_pages)
         overflow_flag = True
+    # get the embed for the page of the menu
     embed = Utils.menu_paginate(menu_pages, page)
 
     class NewView(discord.ui.View):
+        """View for navigating the menu"""
         current_page = page
         max_pages = len(menu_pages)
 
         def __init__(self):
             super().__init__(timeout=30)
+            # update the buttons on first load
             self.update_buttons()
 
         async def on_timeout(self) -> None:
-            item: discord.ui.Item
+            """Disables all buttons when the view times out"""
+            item: discord.ui.Item  # type hinting
             for item in self.children:
                 item.disabled = True
             self.message: discord.Message
+            # edit the message to show that the menu has expired
             await self.message.edit(content="Menu Expired", view=self)
 
         def update_buttons(self):
+            """Function to update the buttons when the page changes or the view is loaded"""
             if self.current_page == 1:
                 self.prev.disabled = True
                 self.prev.style = discord.ButtonStyle.grey
@@ -337,45 +411,60 @@ async def new_menu(interaction: discord.Interaction,
 
         @discord.ui.button(label="Previous", style=discord.ButtonStyle.green)
         async def prev(self, interaction: discord.Interaction, button: discord.ui.Button):
-            self.current_page -= 1
+            """Previous button"""
+            self.current_page -= 1  # decrement the current page
             self.update_buttons()
             embed = Utils.menu_paginate(menu_pages, self.current_page)
+            # edit the message to show the previous page
             await interaction.response.edit_message(content=None, embed=embed, view=self)
 
         @discord.ui.button(label="Next", style=discord.ButtonStyle.green)
         async def next(self, interaction: discord.Interaction, button: discord.ui.Button):
-            self.current_page += 1
+            """Next button"""
+            self.current_page += 1  # increment the current page
             self.update_buttons()
             embed = Utils.menu_paginate(menu_pages, self.current_page)
+            # edit the message to show the next page
             await interaction.response.edit_message(content=None, embed=embed, view=self)
     view = NewView()
+    # Check if overflow_flag is True, if it is, send a message saying that the page doesn't exist and send the last page instead
     if overflow_flag:
         await interaction.response.send_message("That page doesn't exist! Here's the last page instead.", embed=embed, view=view)
     else:
         await interaction.response.send_message(embed=embed, view=view)
+    # set the message attribute of the view to the message sent by the bot
     view.message = await interaction.original_response()
+    # set the og_author attribute of the view to the user who sent the command
+    view.og_author = interaction.user.id
 
 
 def check_payments(inv):
+    """checks the status of the invoice by calling the check method of the Payment class"""
     from payments import Payment
+    # calls the check method of the Payment class
     status = Payment.check(inv['id'])
-    return status.upper()
+    return status.upper()  # returns the status in uppercase
 
 
 @bot.event
 async def on_message(message: discord.Message):
+    """Event handler for messages, detects all messages and responds to ones that satisfy the conditions"""
     if message.author == bot.user:
+        """If the message is sent by the bot, ignore it"""
         return
     if message.content.lower() == ";;jesse stop" and message.author.id in owners:
+        """closes the bot if the message is ;;jesse stop and the author is in the owners list"""
         await message.reply("Okay Mr. White, I'm out!")
-        await bot.close()
+        await bot.close()  # closes the bot
     if message.content.lower().startswith(";;del") and message.author.id in owners:
-        ls = message.content.split()
+        """deletes messages with ids given after ;;del if the author is in the owners list"""
+        ls = message.content.split()  # splits the message into a list, getting all the ids
         if len(ls) >= 2:
             for i in ls[1:]:
                 try:
+                    # fetches the message with the id
                     msg = await message.channel.fetch_message(i)
-                    await msg.delete()
+                    await msg.delete()  # deletes the message
                 except:
                     pass
             try:
@@ -386,6 +475,6 @@ async def on_message(message: discord.Message):
 
 @tree.command(name="tictactoe", description="plays tictactoe")
 async def tic(ctx: discord.Interaction):
-    """Starts a tic-tac-toe game with yourself."""
+    """plays tictactoe with the user in a view"""
     await ctx.response.send_message('Tic Tac Toe: X goes first', view=Fun.TicTacToe())
 bot.run(os.getenv("TOKEN"))
