@@ -9,7 +9,7 @@ class Checkers():
         if interaction.guild is None:
             return True
         return False
-    
+
     def is_dm():
         def predicate(interaction: discord.Interaction):
             if interaction.guild is None:
@@ -72,8 +72,18 @@ class Utils():
             total += cart[i]["quantity"]*cart[i]["rate"]
         return total
 
-class Carts():
+    def filename_gen(name: str, id: str, ext: str):
+        return (name.strip())+"_"+(str(id))+"."+(ext.strip())
+    
+    def random_hex_color():
+        import random
+        return discord.Color.from_rgb(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+
+
+class Orders():
     pass
+
+
 class Fun():
     class TicTacToeButton(discord.ui.Button['TicTacToe']):
         def __init__(self, x: int, y: int):
@@ -174,3 +184,6 @@ class Fun():
                 return self.Tie
 
             return None
+
+
+print(Utils.filename_gen("test", "123", "png"))

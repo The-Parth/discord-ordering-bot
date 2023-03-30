@@ -3,7 +3,7 @@ from discord import app_commands
 import os
 import asyncio
 import csv
-from extras import Checkers, Utils, Fun
+from extras import Checkers, Utils, Fun, Orders
 from dotenv import load_dotenv
 import datetime
 import json
@@ -67,7 +67,7 @@ class CartActions(app_commands.Group):
                     # Breaks if the page is empty
                     break
                 embed = discord.Embed(description=i, color=0x57eac8)
-                
+
                 # Adds the embed to the embed list
                 embeds.append(embed)
 
@@ -407,6 +407,76 @@ class CartActions(app_commands.Group):
         # Debugging purposes
         print(builder_view.og_author)
 
+    @build.error
+    async def build_error(self, interaction: discord.Interaction, error):
+        """Error handler for the view command"""
+        embed = discord.Embed(title="Error!",
+                              description=str(error),
+                              color=0xc6be0f)
+        embed.set_footer(text="Please message staff")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="clear", description="Clears your cart")
+    async def clear_cart(self, interaction: discord.Interaction):
+        """Clears the user's cart"""
+        class ConfirmView(discord.ui.View):
+            """Confirmation view for clearing the cart"""
+
+            def __init__(self):
+                super().__init__(timeout=30.0)
+
+            async def on_timeout(self):
+                for i in self.children:
+                    i.disabled = True
+                    await self.message.edit(view=self)
+
+            @discord.ui.button(label="Yes", style=discord.ButtonStyle.red)
+            async def yes_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+                """Yes button, clears the cart"""
+                # Clears the cart
+                if not (Checkers.is_dm_2(interaction)):
+                    if interaction.user.id is not self.og_author:
+                        # Checks if the user is the original author of the message
+                        await interaction.response.send_message("You can't do that!", ephemeral=True)
+                        return
+                filepath = os.path.dirname(os.path.abspath(
+                    __file__)) + "\data\carts\{0}.json".format(interaction.user.id)
+                # Makes it fit your OS
+                filepath = Utils.path_finder(filepath)
+                # Edits the message with the new view
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+                embed = discord.Embed(title="Cart cleared!",
+                                      description="Your cart has been cleared!",
+                                      color=0xc6be0f)
+                for i in self.children:
+                    i.disabled = True
+                await interaction.response.edit_message(embed=embed, view=self)
+
+            @discord.ui.button(label="No", style=discord.ButtonStyle.green)
+            async def no_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+                """No button, cancels the operation"""
+                # Cancels the operation
+                if not (Checkers.is_dm_2(interaction)):
+                    if interaction.user.id is not self.og_author:
+                        await interaction.response.send_message("You can't do that!", ephemeral=True)
+                        return
+                embed = discord.Embed(title="Cart not cleared!",
+                                      description="Your cart has not been cleared!",
+                                      color=0xc6be0f)
+                for i in self.children:
+                    i.disabled = True
+                await interaction.response.edit_message(embed=embed, view=self)
+
+        embed = discord.Embed(title="Are you sure?",
+                              description="Are you sure you want to clear your cart?",
+                              color=0xc6be0f)
+        embed.set_footer(text="This action cannot be undone!")
+        confirmv = ConfirmView()
+        await interaction.response.send_message(embed=embed, view=confirmv, ephemeral=True)
+        confirmv.message = await interaction.original_response()
+        confirmv.og_author = interaction.user.id
+
 
 @bot.event
 async def on_ready():
@@ -446,8 +516,237 @@ async def order(interaction: discord.Interaction, name: str):
 
 @tree.command(name="place_order", description="Confirm and place your order! (DMs only)")
 @Checkers.is_dm()
-async def place_order(interaction: discord.Interaction):
-    await interaction.response.send_message("Gatorade me! Placing order")
+@app_commands.describe(
+    email="Your email address to which the invoice must be sent!"
+)
+async def place_order(interaction: discord.Interaction, email: str):
+    """Places the order"""
+    filepath = os.path.dirname(os.path.abspath(
+        __file__)) + "\data\carts\{0}.json".format(interaction.user.id)
+    # Makes it fit your OS
+    filepath = Utils.path_finder(filepath)
+
+    # Creates the cart if it doesn't exist
+    if not os.path.isfile(filepath):
+        json.dump({}, open(filepath, "w"), indent=2)
+
+    # Opens the cart
+    cart = json.load(open(filepath, "r"))
+
+    import re
+    if (re.fullmatch(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b', email)):
+        pass
+    else:
+        # Error message if email is invalid
+        await interaction.response.send_message("Invalid email address!", ephemeral=True)
+        return
+
+    # If the cart is empty, sends an ephemeral message
+    if cart == {}:
+        await interaction.response.send_message("Your cart is empty!", ephemeral=True)
+        return
+
+    class PlaceOrderView(discord.ui.View):
+        def __init__(self):
+            super().__init__()
+
+        @discord.ui.button(label="Confirm", style=discord.ButtonStyle.green)
+        async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+            """Confirms the order"""
+            order_channel = bot.get_channel(1090984464261320724)
+            # Checks if the cart is empty
+            if cart == {}:
+                embed = discord.Embed(title="Your Cart is Empty",
+                                      description="Your cart is empty, add something to it!",
+                                      color=0x57eac8)
+                embed.set_footer(text="If you need help, use /help")
+
+                await order_channel.send(embed=embed)
+                return
+            else:
+                """Now that we know the cart isn't empty, we can start formatting the menu string"""
+                """Menu string is a list of strings, each string is a page of the menu"""
+                """Pages are used so that the menu doesn't get too long and discord doesn't complain, 12 items per page"""
+                menu_string = [""]*10
+                item_count = 0
+                total_items = 0
+                f = cart
+                # Formats the menu string in the format of "Item(Price) x Quantity..........Total"
+                for item in f:
+                    # Adds the item to the menu string
+                    item_count += 1
+                    total_items += f[item]['quantity']
+                    menu_string[int((item_count)/15.0001)] += "{4}. **{0}**(*₹{1}*) x **{2}**..........**₹{3}**\n".format(
+                        item, f[item]['rate'], f[item]['quantity'], f[item]['rate'] * f[item]['quantity'], item_count)
+
+                # Creates the embed
+                embeds = []
+                rand_color = Utils.random_hex_color()
+                for i in menu_string:
+                    # Creates the embed list for each page by adding the menu string elemnts to the embed
+                    if i == "":
+                        # Breaks if the page is empty
+                        break
+                    embed = discord.Embed(description=i, color=rand_color)
+
+                    # Adds the embed to the embed list
+                    embeds.append(embed)
+
+                # Sets the title of the first embed
+                embeds[0].title = "Order for {0}".format(interaction.user.name)
+                # Adds the total to the last embed
+
+                embeds.append(discord.Embed(title="Order Summary",
+                                            color=rand_color))
+                embeds[-1].description = "**User ID**: {0}\n".format(
+                    interaction.user.id)
+                embeds[-1].description += "**Username:** {0}#{1}\n".format(
+                    interaction.user.name, interaction.user.discriminator)
+                embeds[-1].description += "**Number of items:** {0}\n".format(
+                    total_items)
+                embeds[-1].description += "**Email:** {0}\n".format(email)
+                embeds[-1].timestamp = datetime.datetime.now()
+                embeds[-1].description += "\n**Total: ₹{0}**".format(
+                    Utils.get_cart_total(f))
+            timestamp_of_order = int(datetime.datetime.utcnow().timestamp())
+            limbo_path = os.path.dirname(os.path.abspath(
+                __file__)) + "\data\carts\limbo\{0}".format(
+                    Utils.filename_gen(str(timestamp_of_order)[-1:-5:-1][::-1],
+                                       str(interaction.user.id),
+                                       "json"))
+            limbo_path = Utils.path_finder(limbo_path)
+            json.dump(cart, open(limbo_path, "w"), indent=2)
+            os.remove(filepath)
+            int_channel = interaction.channel
+            from payments import Payment
+            amount = Utils.get_cart_total(cart)/100
+            memo = str(interaction.user.id) + \
+                f": Order from {str(interaction.user)} of INR {amount} at {timestamp_of_order}"
+            # Create the invoice using the Coinbase Commerce API in payments.py
+            try:
+                inv = Payment.invoice(str(interaction.user),
+                                      email, amount, "INR", memo)
+            except Exception as e:
+                await interaction.response.send_message("Error creating invoice, please try again later!", ephemeral=True)
+                return
+
+            # Make an the invoice with a button to pay the invoice
+            embed = discord.Embed(title=f"Invoice {inv['code']} created!",
+                                  description=f"Payment link : {inv['url']}",
+                                  color=0xc6be0f)
+            embed.add_field(name="Amount", value=f"INR {amount}", inline=True)
+            embed.add_field(name="Order Code", value=inv['code'], inline=True)
+            embed.add_field(name="Tx. ID", value=str(inv['id']), inline=True)
+            view = discord.ui.View()
+            view.add_item(item=discord.ui.Button(
+                label="Make Payment", url=inv['url']))
+
+            # Send the invoice to the user
+            await interaction.response.edit_message(embed=embed, view=view)
+            msg = await interaction.original_response()
+            count = 0
+            flag_check_coming = False
+            while True:
+                """Checks if the invoice has been paid every 10 seconds"""
+                stats = check_payments(inv)
+                count += 1
+                print(f"{count}. Payment Stats for {inv['code']} = {stats}")
+
+                # check status every 10 seconds
+                if stats == 'PAYMENT_PENDING' and flag_check_coming == False:
+                    """Case when the payment is marked as pending, and the user hasn't been notified yet"""
+                    flag_check_coming = True
+                    embed = discord.Embed(title=f"Payment for Invoice {inv['code']} Pending!",
+                                          description=f"Check status here : {inv['url']}",
+                                          color=0x3f7de0)
+                    embed.set_footer(
+                        text="We will notify you when the payment is complete.")
+                    await msg.reply(embed=embed)
+
+                if stats == 'PAID':
+                    """Case when the payment is complete, and the user hasn't been notified yet"""
+                    embed = discord.Embed(title=f"Invoice {inv['code']} Paid Successfully!",
+                                          description=f"View Charge : {inv['url']}",
+                                          color=0x20e364)
+                    embed.add_field(
+                        name="Amount", value=f"INR {amount}", inline=True)
+                    embed.add_field(name="Order Code",
+                                    value=inv['code'], inline=True)
+                    embed.add_field(name="Tx. ID", value=str(
+                        inv['id']), inline=True)
+                    embed.set_footer(
+                        text="Thank you for shopping with us! See you soon!")
+                    view = discord.ui.View()
+                    view.add_item(item=discord.ui.Button(
+                        label="View Charge", url=inv['url']))
+                    await msg.reply(embed=embed, view=view)
+                    await order_channel.send(embeds=embeds)
+                    await int_channel.send(embed=discord.Embed(
+                        title="Order Placed!",
+                        description=f"Your order has been placed successfully!",
+                        color=0x20e364)
+                    )
+
+                    break  # break out of the loop
+
+                if stats == 'VOID':
+                    """Case when the invoice is voided, and the user hasn't been notified yet"""
+                    embed = discord.Embed(title=f"Invoice {inv['code']} Voided!",
+                                          description=f"Your invoice with id {inv['id']} of INR {amount} has been voided and can no longer be paid.",
+                                          color=0xd62d2d)
+                    embed.set_footer(
+                        text="This is usually due to staff interruption.")
+                    await msg.reply(embed=embed)
+                    json.dump(json.load(open(limbo_path, "r")),
+                              open(filepath, "w"), indent=2)
+                    break  # break out of the loop
+
+                if stats == 'EXPIRED':
+                    """Case when the invoice is expired, and the user hasn't been notified yet"""
+                    embed = discord.Embed(title=f"Invoice {inv['code']} Expired!",
+                                          description=f"Your invoice with id {inv['id']} of INR {amount} has expired and can no longer be paid. Please make sure to pay within 60 minutes of placing the order.",
+                                          color=0xd62d2d)
+                    embed.set_footer(
+                        text="You can try again with a new invoice.")
+                    await msg.reply(embed=embed)
+                    json.dump(json.load(open(limbo_path, "r")),
+                              open(filepath, "w"), indent=2)
+                    break  # break out of the loop
+
+                if stats == 'UNRESOLVED':
+                    """Case when the invoice is in an unresolved state, and the user hasn't been notified yet"""
+                    embed = discord.Embed(title=f"Invoice {inv['code']} needs attention!",
+                                          description=f"Your invoice with id {inv['id']} of INR {amount} is in an unresolved state. Please contact us for more information.",
+                                          color=0xd62d2d)
+                    embed.set_footer(
+                        "This may be due to underpayment or overpayment.")
+                    json.dump(json.load(open(limbo_path, "r")),
+                              open(filepath, "w"), indent=2)
+                    await msg.reply(embed=embed)
+                    break  # break out of the loop
+
+                # sleep for 10 seconds before checking again
+                await asyncio.sleep(10)
+
+            # Sends a message in the channel
+            os.remove(limbo_path)
+
+        @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
+        async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+            """Cancels the order"""
+            embed = discord.Embed(title="Order cancelled!",
+                                  description="Your order has been cancelled!",
+                                  color=0xc6be0f)
+            # Sends a message in the channel
+            await interaction.response.edit_message(embed=embed, view=None)
+
+    # Creates the embed
+    embed = discord.Embed(title="Confirm your order",
+                          description="Please confirm your order by clicking the button below.\nThis will clear your cart.",
+                          color=0x05f569)
+    embed.set_footer(text="Check your cart before confirming!")
+    po_view = PlaceOrderView()
+    await interaction.response.send_message(embed=embed, view=po_view)
 
 
 @place_order.error
@@ -521,6 +820,7 @@ async def tip(interaction: discord.Interaction,
         """
         stats = check_payments(inv)
         count += 1
+
         # print every 10 seconds for debugging purposes
         print(f"{count}. Payment Stats for {inv['code']} = {stats}")
 

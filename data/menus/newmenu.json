@@ -136,5 +136,29 @@
     "COST": "150",
     "DESC": "Indian style delicacy RICE",
     "TIME": " 15 minutes"
+  },
+  {
+    "ITEM": "Chowmein",
+    "COST": "120",
+    "DESC": "Chinese style noodles",
+    "TIME": " 10 minutes"
+  },
+  {
+    "ITEM": "Sushi",
+    "COST": "150",
+    "DESC": "Japanese rice rolls",
+    "TIME": " 10 minutes"
+  },
+  {
+    "ITEM": "Ramen",
+    "COST": "120",
+    "DESC": "Japanese style noodles",
+    "TIME": " 11 minutes"
+  },
+  {
+    "ITEM": "Daal Chawal",
+    "COST": "100",
+    "DESC": "Indian style delicacy RICE",
+    "TIME": " 10 minutes"
   }
 ]
