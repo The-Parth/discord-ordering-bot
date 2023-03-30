@@ -47,22 +47,43 @@ class CartActions(app_commands.Group):
             # Tells the user that their cart is empty
             await interaction.response.send_message(embed=embed, ephemeral=True)
         else:
-            menu_string = ""
+            """Now that we know the cart isn't empty, we can start formatting the menu string"""
+            """Menu string is a list of strings, each string is a page of the menu"""
+            """Pages are used so that the menu doesn't get too long and discord doesn't complain, 12 items per page"""
+            menu_string = [""]*10
+            item_count = 0
             # Formats the menu string in the format of "Item(Price) x Quantity..........Total"
             for item in f:
-                menu_string += "**{0}**(*₹{1}*) x **{2}**..........**₹{3}**\n".format(
-                    item, f[item]['rate'], f[item]['quantity'], f[item]['rate'] * f[item]['quantity'])
+                # Adds the item to the menu string
+                item_count += 1
+                menu_string[int((item_count)/12.0001)] += "{4}. **{0}**(*₹{1}*) x **{2}**..........**₹{3}**\n".format(
+                    item, f[item]['rate'], f[item]['quantity'], f[item]['rate'] * f[item]['quantity'], item_count)
 
             # Creates the embed
-            embed = discord.Embed(title="Your Cart",
-                                  description=menu_string,
-                                  color=0x57eac8)
+            embeds = []
+            for i in menu_string:
+                # Creates the embed list for each page by adding the menu string elemnts to the embed
+                if i == "":
+                    # Breaks if the page is empty
+                    break
+                embed = discord.Embed(description=i, color=0x57eac8)
+                
+                # Adds the embed to the embed list
+                embeds.append(embed)
+
+            # Sets the title of the first embed
+            embeds[0].title = "Your Cart"
+            # Sets the footer of the last embed to
+            embeds[-1].set_footer(text="Use /cart build to make changes to your cart")
+            # Adds the total to the last embed
+            embeds[-1].description += "\n**Total: ₹{0}**".format(
+                Utils.get_cart_total(f))
 
             # Sends the cart
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            await interaction.response.send_message(embeds=embeds, ephemeral=True)
             return
 
-    @view.error
+    # @view.error
     async def view_error(self, interaction: discord.Interaction, error):
         """Error handler for the view command"""
         embed = discord.Embed(title="Error!",
@@ -400,7 +421,7 @@ async def on_ready():
         await tree.sync()
     except:
         pass
-    
+
     # Starts the status task forever
     while await status_task():
         continue

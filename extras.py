@@ -66,6 +66,12 @@ class Utils():
         else:
             return path.replace("\\", "/")
 
+    def get_cart_total(cart):
+        total = 0
+        for i in cart:
+            total += cart[i]["quantity"]*cart[i]["rate"]
+        return total
+
 class Carts():
     pass
 class Fun():

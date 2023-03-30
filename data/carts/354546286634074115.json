@@ -1,42 +1,54 @@
 {
-  "Hot Water": {
-    "rate": 0,
-    "quantity": 7
-  },
   "Tea": {
     "rate": 10,
-    "quantity": 5
+    "quantity": 1
+  },
+  "Latte": {
+    "rate": 40,
+    "quantity": 1
+  },
+  "Chicken": {
+    "rate": 120,
+    "quantity": 2
+  },
+  "Poha": {
+    "rate": 40,
+    "quantity": 1
+  },
+  "Espresso": {
+    "rate": 30,
+    "quantity": 1
   },
   "Cappuccino": {
     "rate": 30,
     "quantity": 2
   },
-  "Coffee": {
-    "rate": 20,
-    "quantity": 2
-  },
-  "Maggi": {
-    "rate": 30,
-    "quantity": 2
-  },
-  "Espresso": {
-    "rate": 30,
+  "Burger": {
+    "rate": 100,
     "quantity": 2
   },
   "Idli": {
     "rate": 50,
-    "quantity": 2
+    "quantity": 1
   },
-  "Latte": {
-    "rate": 40,
+  "Soup": {
+    "rate": 80,
     "quantity": 3
   },
-  "Chicken": {
-    "rate": 120,
+  "Dosa": {
+    "rate": 60,
+    "quantity": 2
+  },
+  "Vada": {
+    "rate": 40,
     "quantity": 1
   },
   "Choupsey": {
     "rate": 40,
+    "quantity": 3
+  },
+  "Biryani": {
+    "rate": 150,
     "quantity": 1
   }
 }
