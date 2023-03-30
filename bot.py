@@ -83,7 +83,7 @@ class CartActions(app_commands.Group):
             await interaction.response.send_message(embeds=embeds, ephemeral=True)
             return
 
-    # @view.error
+    @view.error
     async def view_error(self, interaction: discord.Interaction, error):
         """Error handler for the view command"""
         embed = discord.Embed(title="Error!",
