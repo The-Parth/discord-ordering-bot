@@ -5,6 +5,11 @@ import os
 
 class Checkers():
 
+    def is_dm_2(interaction: discord.Interaction):
+        if interaction.guild is None:
+            return True
+        return False
+    
     def is_dm():
         def predicate(interaction: discord.Interaction):
             if interaction.guild is None:
@@ -61,7 +66,8 @@ class Utils():
         else:
             return path.replace("\\", "/")
 
-
+class Carts():
+    pass
 class Fun():
     class TicTacToeButton(discord.ui.Button['TicTacToe']):
         def __init__(self, x: int, y: int):

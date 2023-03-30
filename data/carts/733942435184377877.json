@@ -1,0 +1,14 @@
+{
+  "Coffee": {
+    "rate": 20,
+    "quantity": 1
+  },
+  "Latte": {
+    "rate": 40,
+    "quantity": 2
+  },
+  "Chicken": {
+    "rate": 120,
+    "quantity": 1
+  }
+}

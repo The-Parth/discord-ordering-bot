@@ -1,11 +1,42 @@
 {
-    "item1": {
-      "quantity": 3,
-      "rate": 120
-    },
-    "item2": {
-      "quantity": 2,
-      "rate": 150
-    }
+  "Hot Water": {
+    "rate": 0,
+    "quantity": 7
+  },
+  "Tea": {
+    "rate": 10,
+    "quantity": 5
+  },
+  "Cappuccino": {
+    "rate": 30,
+    "quantity": 2
+  },
+  "Coffee": {
+    "rate": 20,
+    "quantity": 2
+  },
+  "Maggi": {
+    "rate": 30,
+    "quantity": 2
+  },
+  "Espresso": {
+    "rate": 30,
+    "quantity": 2
+  },
+  "Idli": {
+    "rate": 50,
+    "quantity": 2
+  },
+  "Latte": {
+    "rate": 40,
+    "quantity": 3
+  },
+  "Chicken": {
+    "rate": 120,
+    "quantity": 1
+  },
+  "Choupsey": {
+    "rate": 40,
+    "quantity": 1
   }
-  
+}

@@ -20,7 +20,7 @@ owners = [354546286634074115]
 
 class CartActions(app_commands.Group):
     """Command group for cart actions, placed in the cart command group"""
-    
+
     @app_commands.command(name="view", description="View your current cart")
     async def view(self, interaction: discord.Interaction):
         """View your current cart"""
@@ -29,20 +29,22 @@ class CartActions(app_commands.Group):
             __file__)) + "\data\carts\{0}.json".format(interaction.user.id)
         # Makes it fit your OS
         filepath = Utils.path_finder(filepath)
-        
+
         # Creates the file if it doesn't exist
         if not os.path.isfile(filepath):
             with open(filepath, "w") as f:
                 json.dump({}, f, indent=2)
         # Loads the file
         f = json.load(open(filepath, "r"))
-        
+
         # Checks if the cart is empty
         if f == {}:
             embed = discord.Embed(title="Your Cart is Empty",
                                   description="Your cart is empty, add something to it!",
                                   color=0x57eac8)
             embed.set_footer(text="If you need help, use /help")
+
+            # Tells the user that their cart is empty
             await interaction.response.send_message(embed=embed, ephemeral=True)
         else:
             menu_string = ""
@@ -50,10 +52,12 @@ class CartActions(app_commands.Group):
             for item in f:
                 menu_string += "**{0}**(*₹{1}*) x **{2}**..........**₹{3}**\n".format(
                     item, f[item]['rate'], f[item]['quantity'], f[item]['rate'] * f[item]['quantity'])
+
+            # Creates the embed
             embed = discord.Embed(title="Your Cart",
                                   description=menu_string,
                                   color=0x57eac8)
-            
+
             # Sends the cart
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
@@ -68,39 +72,78 @@ class CartActions(app_commands.Group):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="build", description="Build your cart!")
-    async def build(
-            self, interaction:
-            discord.Interaction,
-            page: app_commands.Range[int, 1, None] = 1):
+    async def build(self, interaction:
+                    discord.Interaction,
+                    page: app_commands.Range[int, 1, None] = 1):
         """Build your cart!"""
+        """Took my beloved life to figure out how stuff works"""
+        # Gets the filepath of the menu json file, and loads it
         filepath = os.path.dirname(os.path.abspath(
             __file__)) + "/data/menus/newmenu.json"
+        # Makes it fit your OS
         filepath = Utils.path_finder(filepath)
         with open(filepath, "r") as f:
             menu = json.load(f)
+
+        # Gets the filepath of the cart json file for the user, and creates it if it doesn't exist
+        filepath = os.path.dirname(os.path.abspath(
+            __file__)) + "\data\carts\{0}.json".format(interaction.user.id)
+        # Makes it fit your OS
+        filepath = Utils.path_finder(filepath)
+
+        # Creates the cart if it doesn't exist
+        if not os.path.isfile(filepath):
+            json.dump({}, open(filepath, "w"), indent=2)
         menu_pages = Utils.list_divider(menu, 10)
-        overflow_flag = False
+        overflow_flag = False  # Flag to check if the page number is too high
+
+        # Checks if the page number is too high
         if page > len(menu_pages):
             page = len(menu_pages)
             overflow_flag = True
         embed = Utils.cartbuilder_paginate(menu_pages, page)
 
         class BuildView(discord.ui.View):
+            """Special view for the build command, super high level tactics"""
             current_page = page
             max_pages = len(menu_pages)
+            initial_call = True  # Flag to check if it's the first time the view is called
 
             def __init__(self):
                 super().__init__(timeout=90)
-                self.update_buttons()
+                if self.initial_call:
+                    # Updates the buttons for the first time
+                    self.update_pages()
+                    self.initial_call = False
 
             async def on_timeout(self) -> None:
-                item: discord.ui.Item
+                """Called when the view times out"""
+                item: discord.ui.Item  # type hinting
+
+                # Disables all the buttons in the view
                 for item in self.children:
                     item.disabled = True
                 self.message: discord.Message
-                await self.message.edit(content="Menu Expired", view=self)
 
-            def update_buttons(self):
+                # Edits the message to say that the cart has expired
+                await self.message.edit(content="Cart Expired", view=self)
+
+            def update_pages(self):
+                """Updates the buttons in the view when the page is changed, also called when the view is initialized"""
+                # Gets the filepath of the cart json file for the user, and creates it if it doesn't exist
+                filepath = os.path.dirname(os.path.abspath(
+                    __file__)) + "\data\carts\{0}.json".format(interaction.user.id)
+                # Makes it fit your OS
+                filepath = Utils.path_finder(filepath)
+
+                # Creates the cart if it doesn't exist
+                if not os.path.isfile(filepath):
+                    json.dump({}, open(filepath, "w"), indent=2)
+
+                # Loads the cart
+                cart = json.load(open(filepath, "r"))
+
+                # Checks page number and updates the buttons accordingly
                 if self.current_page == 1:
                     self.prev.disabled = True
                     self.prev.style = discord.ButtonStyle.grey
@@ -114,65 +157,251 @@ class CartActions(app_commands.Group):
                     self.next.disabled = False
                     self.next.style = discord.ButtonStyle.green
 
+                # Options for the select menu, updates the description to show the quantity in the cart
                 ls = []
                 for i in menu_pages[self.current_page - 1]:
-                    print(i)
                     ls.append(discord.SelectOption(
-                        label=i['ITEM'] + " : ₹{0}".format(i['COST']), description="In Cart {0}".format(0), value=i['ITEM']))
-                self.select1.options = ls
+                        label=i['ITEM'] + " : ₹{0}".format(i['COST']),
+                        description="In Cart : {0}".format(
+                            cart[i['ITEM']]['quantity'] if i['ITEM'] in cart else 0),
+                        value=i['ITEM']
+                    )
+                    )
+
+                # Updates the select menu options
+                self.select_item.options = ls
+
+                # Sets the selected option to None if the page is changed
+                if len(self.select_item.values) != 0:
+                    self.select_item.values[0] = None
+
+                # Updates the label of the item in cart button if the page is changed
+                self.in_cart.label = "Select an item"
+
+            def update_carts(self, action):
+                """Updates the cart when an item is added or removed, or the select menu option is changed"""
+                # Gets the filepath of the cart json file for the user, and creates it if it doesn't exist
+                filepath = os.path.dirname(os.path.abspath(
+                    __file__)) + "\data\carts\{0}.json".format(interaction.user.id)
+                # Makes it fit your OS
+                filepath = Utils.path_finder(filepath)
+
+                # Creates the cart if it doesn't exist
+                if not os.path.isfile(filepath):
+                    json.dump({}, open(filepath, "w"), indent=2)
+
+                # Loads the cart
+                cart = json.load(open(filepath, "r"))
+
+                if action == "ADD":
+                    """Adds an item to the cart"""
+                    if self.select_item.values[0] not in cart:
+                        rate = None
+                        item = None
+                        for i in menu_pages[self.current_page - 1]:
+                            # Gets the rate of the item
+                            if i['ITEM'] == self.select_item.values[0]:
+                                rate = i['COST']
+                                item = i['ITEM']
+                                break
+                        # Adds the item to the cart
+                        cart[self.select_item.values[0]] = {
+                            "rate": int(rate.strip()),
+                            "quantity": 1
+                        }
+                    else:
+                        # If the item is already in the cart, increases the quantity
+                        cart[self.select_item.values[0]]["quantity"] += 1
+
+                    # Updates the label of the item in cart button
+                    self.in_cart.label = "In Cart: {0}".format(
+                        cart[self.select_item.values[0]]["quantity"])
+
+                elif action == "REMOVE":
+                    """Checks if the item is in the cart, and removes it if the quantity is 1, else decreases the quantity"""
+                    if self.select_item.values[0] in cart:
+                        if cart[self.select_item.values[0]]["quantity"] == 1:
+                            del cart[self.select_item.values[0]]
+                            self.in_cart.label = "In Cart: {0}".format(0)
+                        else:
+                            cart[self.select_item.values[0]]["quantity"] -= 1
+                            self.in_cart.label = "In Cart: {0}".format(
+                                cart[self.select_item.values[0]]["quantity"])
+
+                elif action == "CLEAR":
+                    """Clears the cart, not used yet"""
+                    cart = {}
+
+                elif action == "SELECT":
+                    """Selects an item in the cart, updates the label of the item in cart button"""
+                    if self.select_item.values[0] in cart:
+                        self.in_cart.label = "In Cart: {0}".format(
+                            cart[self.select_item.values[0]]["quantity"])
+                    else:
+                        self.in_cart.label = "In Cart: {0}".format(0)
+                for i in self.select_item.options:
+                    # Updates the description of the select menu options for each item showing the quantity in the cart
+                    i.description = "In Cart : {0}".format(cart[i.label.split(
+                        " : ")[0]]['quantity'] if i.label.split(" : ")[0] in cart else 0)
+
+                # Saves the cart
+                json.dump(cart, open(filepath, "w+"), indent=2)
 
             @discord.ui.button(label="Previous", style=discord.ButtonStyle.green, row=2)
             async def prev(self, interaction: discord.Interaction, button: discord.ui.Button):
-                if interaction.user.id is not self.og_author:
-                    await interaction.response.send_message("You can't do that!", ephemeral=True)
-                    return
-                self.current_page -= 1
-                self.update_buttons()
+                """Previous button, goes to the previous page"""
+                if not Checkers.is_dm_2(interaction):
+                    if interaction.user.id is not self.og_author:
+                        # Checks if the user is the original author of the message
+                        await interaction.response.send_message("You can't do that!", ephemeral=True)
+                        return
+                self.current_page -= 1  # Decreases the page number
+                self.update_pages()  # Updates the buttons
+
+                # Gets the embed for the page
                 embed = Utils.cartbuilder_paginate(
                     menu_pages, self.current_page)
+
+                # Edits the message with the new embed and view
                 await interaction.response.edit_message(content=None, embed=embed, view=self)
 
             @discord.ui.button(label="Next", style=discord.ButtonStyle.green, row=2)
             async def next(self, interaction: discord.Interaction, button: discord.ui.Button):
-                print(interaction.user)
-                if interaction.user.id is not self.og_author:
-                    await interaction.response.send_message("You can't do that!", ephemeral=True)
-                    return
-                self.current_page += 1
-                self.update_buttons()
+                """Next button, goes to the next page"""
+                if not Checkers.is_dm_2(interaction):
+                    if interaction.user.id is not self.og_author:
+                        await interaction.response.send_message("You can't do that!", ephemeral=True)
+                        return
+                self.current_page += 1  # Increases the page number
+                self.update_pages()  # Updates the buttons
+
+                # Gets the embed for the page
                 embed = Utils.cartbuilder_paginate(
                     menu_pages, self.current_page)
+
+                # Edits the message with the new embed and view
                 await interaction.response.edit_message(content=None, embed=embed, view=self)
 
             @discord.ui.select(placeholder="Select an option", max_values=1, min_values=1, row=0, options=[
                 discord.SelectOption(
-                    label="Option 1", emoji="👌", description="Placeholder 1"),
+                    label="Option 1", emoji="👌", description="Placeholder 1", value=None, default=True),
             ])
-            async def select1(self, interaction: discord.Interaction, select: discord.ui.Select):
-                if interaction.user.id is not self.og_author:
-                    await interaction.response.send_message("You can't do that!", ephemeral=True)
-                    return
-                await interaction.response.send_message(content=f"Your choice is {select.values[0]}!", ephemeral=True)
+            async def select_item(self, interaction: discord.Interaction, select: discord.ui.Select):
+                """Select menu, selects an item"""
+                print(interaction.user.id)
+                if not (Checkers.is_dm_2(interaction)):
+                    if (interaction.user.id is not self.og_author):
+                        # Checks if the user is the original author of the message
+                        await interaction.response.send_message("You can't do that!", ephemeral=True)
+                        return
 
+                # Resets the default value of the select menu options
+                for i in self.select_item.options:
+                    i.default = False
+
+                # Sets the default value of the selected option to the newly selected option
+                for i in self.select_item.options:
+                    if i.value == self.select_item.values[0]:
+                        i.default = True
+
+                # Updates the label of the item in cart button
+                self.update_carts("SELECT")
+
+                # Edits the message with the new view
+                await interaction.response.edit_message(view=self)
+
+            @discord.ui.button(label="Remove item", style=discord.ButtonStyle.red, row=1)
+            async def remove_item(self, interaction: discord.Interaction, button: discord.ui.Button):
+                """Remove item button, removes the selected item from the cart"""
+                if not (Checkers.is_dm_2(interaction)):
+                    if interaction.user.id is not self.og_author:
+                        # Checks if the user is the original author of the message
+                        await interaction.response.send_message("You can't do that!", ephemeral=True)
+                        return
+
+                # If no item is selected, sends an ephemeral message
+                if len(self.select_item.values) == 0:
+                    await interaction.response.send_message("Please select an item!", ephemeral=True)
+                    return
+
+                # If an item was selected before from a previous page, but the current page doesn't have that item, sends an ephemeral message
+                if self.select_item.values[0] is None:
+                    await interaction.response.send_message("Please select an item!", ephemeral=True)
+                    return
+
+                # Updates the cart
+                self.update_carts("REMOVE")
+
+                # Edits the message with the new view
+                await interaction.response.edit_message(view=self)
+
+            @discord.ui.button(label="Select an Item", style=discord.ButtonStyle.grey, row=1, disabled=True)
+            async def in_cart(self, interaction: discord.Interaction, button: discord.ui.Button):
+                """Shows the quantity of the selected item in the cart, can't be clicked"""
+                # In the future, it might be possible to click this button to show the details of the currently selected item
+                if not (Checkers.is_dm_2(interaction)):
+                    if interaction.user.id is not self.og_author:
+                        await interaction.response.send_message("You can't do that!", ephemeral=True)
+                        return
+
+            @discord.ui.button(label="Add item", style=discord.ButtonStyle.green, row=1)
+            async def add_item(self, interaction: discord.Interaction, button: discord.ui.Button):
+                """Add item button, adds the selected item to the cart"""
+                if not (Checkers.is_dm_2(interaction)):
+                    if interaction.user.id is not self.og_author:
+                        # Checks if the user is the original author of the message
+                        await interaction.response.send_message("You can't do that!", ephemeral=True)
+                        return
+
+                # If no item is selected, sends an ephemeral message
+                if len(self.select_item.values) == 0:
+                    await interaction.response.send_message("Please select an item!", ephemeral=True)
+                    return
+
+                # If an item was selected before from a previous page, but the current page doesn't have that item, sends an ephemeral message
+                if self.select_item.values[0] is None:
+                    await interaction.response.send_message("Please select an item!", ephemeral=True)
+                    return
+
+                # Updates the cart
+                self.update_carts("ADD")
+
+                # Edits the message with the new view
+                await interaction.response.edit_message(view=self)
+
+        # Creates the view
         builder_view = BuildView()
+        # If the page number is greater than the number of pages, sends a message saying that
+        # the page doesn't exist and the last page is shown instead
         if overflow_flag:
             await interaction.response.send_message("That page doesn't exist! Here's the last page instead.", embed=embed, view=builder_view)
         else:
             await interaction.response.send_message(embed=embed, view=builder_view)
+
+        # Sets the message attribute of the view to the original response
         builder_view.message = await interaction.original_response()
+        # Sets the original author of the view to the user who sent the command
         builder_view.og_author = interaction.user.id
+
+        # Debugging purposes
         print(builder_view.og_author)
 
 
 @bot.event
 async def on_ready():
+    """When the bot is ready"""
     print("Bot is ready, logged in as {0.user}".format(bot))
     try:
+        # Creates the slash command tree
         cart = CartActions(name="cart", description="Views your cart")
+        # Adds the cart command group to the tree
         tree.add_command(cart)
+        # Syncs the tree globally
         await tree.sync()
     except:
         pass
+    
+    # Starts the status task forever
     while await status_task():
         continue
 
