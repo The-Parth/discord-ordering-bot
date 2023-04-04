@@ -3,13 +3,15 @@
     "ITEM": "Coffee",
     "COST": "20",
     "DESC": "Caffeine rich morning starter",
-    "TIME": " 5 minutes"
+    "TIME": " 5 minutes",
+    "IMAG": "https://cdn.discordapp.com/attachments/1092763447994888253/1092765013967642634/coffee.jpg"
   },
   {
     "ITEM": "Tea",
     "COST": "10",
     "DESC": "Herbal infusion",
-    "TIME": " 5 minutes"
+    "TIME": " 5 minutes",
+    "IMAG": "https://cdn.discordapp.com/attachments/1092763447994888253/1092765981190918214/tea.jpg"
   },
   {
     "ITEM": "Cappuccino",

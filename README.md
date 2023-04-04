@@ -21,6 +21,8 @@ Clone the project into it's seperate folder
 Grab all the required dependencies.
 ```bash
     pip install discord
+    pip install python-dotenv
+    pip install requests
 ```
 Go and delete all files in `data/carts` and fill `data/newmenu.json` with your menu files!
 
@@ -49,7 +51,7 @@ To run this project, you will need to add the following environment variables to
 ## Usage
 Make sure to run the command when Current Working Directory is the same as the one containing the bot.py file
 ```bash
-    python3 bot.py
+    python bot.py
 ```
 You can edit the code as per your requirements by reading the code yourself. 
 

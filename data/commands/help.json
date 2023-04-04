@@ -1,0 +1,34 @@
+{
+  "help": {
+    "desc": "Shows this help message, or help for a specific command.",
+    "usage": "help [command]"
+  },
+  "cart clear": {
+    "desc": "Removes all items in your current cart for a fresh start.",
+    "usage": "cart clear"
+  },
+  "cart build": {
+    "desc": "Helps you build your cart using the menu.\n\nTo add an item, select the item from the dropdown menu and click the `Add Item` button.\n\nTo remove an item, select the item from the dropdown menu and click the `Remove Item` button.\nPress `Next` to see the next page of the menu and `Previous` to see the previous page of the menu.",
+    "usage": "cart build [page]"
+  },
+  "cart view": {
+    "desc": "Shows you all the items in your current cart.",
+    "usage": "cart view"
+  },
+  "place_order": {
+    "desc": "Places your order and sends it to the restaurant.\n\nYou will be prompted to confirm your order before it is sent and after confirmation, you will be given an invoice to pay for your order. \n\nOnce you have paid, your order will be sent to the restaurant",
+    "usage": "place_order <email>"
+  },
+  "tip": {
+    "desc": "Sends a tip to the restaurant.",
+    "usage": "tip <amount>"
+  },
+  "tictactoe": {
+    "desc": "Play a game of Tic Tac Toe",
+    "usage": "tictactoe"
+  },
+  "menu": {
+    "desc": "Shows the menu for the restaurant.",
+    "usage": "menu [page]"
+  }
+}
