@@ -30,19 +30,22 @@
     "ITEM": "Latte",
     "COST": "40",
     "DESC": "Espresso and steamed milk",
-    "TIME": " 10 minutes"
+    "TIME": " 10 minutes",
+    "IMAG": "https://cdn.discordapp.com/attachments/1092763447994888253/1092802686233096292/Latte.png"
   },
   {
     "ITEM": "Hot Chocolate",
     "COST": "40",
     "DESC": "Chocolate, milk and sugar",
-    "TIME": " 10 minutes"
+    "TIME": " 10 minutes",
+    "IMAG": "https://cdn.discordapp.com/attachments/1092763447994888253/1092804553654685797/Hot_Chocolate.jpg"
   },
   {
     "ITEM": "Hot Water",
     "COST": "0",
     "DESC": "Just hot water",
-    "TIME": " 5 minutes"
+    "TIME": " 5 minutes",
+    "IMAG": "https://cdn.discordapp.com/attachments/1092763447994888253/1092805026537279588/Hot_water.jpg"
   },
   {
     "ITEM": "Chicken",
@@ -54,7 +57,8 @@
     "ITEM": "Wings",
     "COST": "110",
     "DESC": "Chomp Chomp",
-    "TIME": " 15 minutes"
+    "TIME": " 15 minutes",
+    "IMAG": "https://cdn.discordapp.com/attachments/1092763447994888253/1092808049472852109/Chicken_Wings.jpg"
   },
   {
     "ITEM": "Burger",
