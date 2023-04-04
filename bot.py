@@ -566,8 +566,8 @@ async def place_order(interaction: discord.Interaction, email: str):
             else:
                 """Now that we know the cart isn't empty, we can start formatting the menu string"""
                 """Menu string is a list of strings, each string is a page of the menu"""
-                """Pages are used so that the menu doesn't get too long and discord doesn't complain, 12 items per page"""
-                menu_string = [""]*10
+                """Pages are used so that the menu doesn't get too long and discord doesn't complain, 20 items per page"""
+                menu_string = [""]*9
                 item_count = 0
                 total_items = 0
                 f = cart
@@ -576,7 +576,7 @@ async def place_order(interaction: discord.Interaction, email: str):
                     # Adds the item to the menu string
                     item_count += 1
                     total_items += f[item]['quantity']
-                    menu_string[int((item_count)/15.0001)] += "{4}. **{0}**(*₹{1}*) x **{2}**..........**₹{3}**\n".format(
+                    menu_string[int((item_count)/20.0001)] += "{4}. **{0}**(*₹{1}*) x **{2}**..........**₹{3}**\n".format(
                         item, f[item]['rate'], f[item]['quantity'], f[item]['rate'] * f[item]['quantity'], item_count)
 
                 # Creates the embed
@@ -628,9 +628,12 @@ async def place_order(interaction: discord.Interaction, email: str):
                                       email, amount, "INR", memo)
             except Exception as e:
                 await interaction.response.send_message("Error creating invoice, please try again later!", ephemeral=True)
+                json.dump(json.load(open(limbo_path, "r")),
+                          open(filepath, "w"), indent=2)
+                os.remove(limbo_path)
                 return
 
-            # Make an the invoice with a button to pay the invoice
+            # Make an invoice with a button to pay the invoice
             embed = discord.Embed(title=f"Invoice {inv['code']} created!",
                                   description=f"Payment link : {inv['url']}",
                                   color=0xc6be0f)
@@ -1022,7 +1025,11 @@ async def on_message(message: discord.Message):
             except:
                 pass
 
-
+@tree.command(name="email", description="Your email address")
+async def email(interaction: discord.Interaction):
+    """sends the email to the user"""
+    await interaction.response.send_message("k:", ephemeral=True)
+    print((interaction.user.email))
 @tree.command(name="tictactoe", description="plays tictactoe")
 async def tic(ctx: discord.Interaction):
     """plays tictactoe with the user in a view"""
