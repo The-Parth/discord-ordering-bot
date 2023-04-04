@@ -23,7 +23,8 @@
     "ITEM": "Espresso",
     "COST": "30",
     "DESC": "Concentrated coffee",
-    "TIME": " 7 minutes"
+    "TIME": " 7 minutes",
+    "IMAG": "https://cdn.discordapp.com/attachments/1092763447994888253/1092801350028513310/Espresso.jpeg"
   },
   {
     "ITEM": "Latte",

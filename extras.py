@@ -106,10 +106,10 @@ class Utils():
         for i in menu:
             if i["ITEM"] == item:
                 embed.description = i["DESC"]
-                embed.add_field(name="Cost", value=i["COST"])
+                embed.add_field(name="Cost", value="₹" + i["COST"])
                 embed.add_field(name="Preparation Time", value=i["TIME"])
                 if "IMAG" in i:
-                    embed.set_thumbnail(url=i["IMAG"])
+                    embed.set_image(url=i["IMAG"])
                 break
         return embed
         
