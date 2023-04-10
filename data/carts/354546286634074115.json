@@ -1,1 +1,6 @@
-{}
+{
+  "Coffee": {
+    "rate": 20,
+    "quantity": 1
+  }
+}

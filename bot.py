@@ -50,7 +50,7 @@ class CartActions(app_commands.Group):
             """Now that we know the cart isn't empty, we can start formatting the menu string"""
             """Menu string is a list of strings, each string is a page of the menu"""
             """Pages are used so that the menu doesn't get too long and discord doesn't complain, 12 items per page"""
-            menu_string = [""]*10
+            menu_string = [""]*9
             item_count = 0
             # Formats the menu string in the format of "Item(Price) x Quantity..........Total"
             for item in f:
@@ -638,6 +638,10 @@ async def place_order(interaction: discord.Interaction, email: str):
             memo = str(interaction.user.id) + \
                 f": Order from {str(interaction.user)} of INR {amount} at {timestamp_of_order}"
             # Create the invoice using the Coinbase Commerce API in payments.py
+            inv : dict
+            if amount == 0:
+                await interaction.response.send_message("We do not accept orders for free items only!", ephemeral=True)
+                return
             try:
                 inv = Payment.invoice(str(interaction.user),
                                       email, amount, "INR", memo)
