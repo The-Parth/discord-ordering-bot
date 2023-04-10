@@ -1,6 +1,7 @@
 import discord
 import datetime
 import os
+import json
 
 
 class Checkers():
@@ -74,11 +75,45 @@ class Utils():
 
     def filename_gen(name: str, id: str, ext: str):
         return (name.strip())+"_"+(str(id))+"."+(ext.strip())
-    
+
     def random_hex_color():
         import random
         return discord.Color.from_rgb(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
 
+    def help_embed(option: str):
+        embed = discord.Embed(color=Utils.random_hex_color())
+        if option == None:
+            embed.title = "Help"
+            embed.set_footer(
+                text="Use `/help <command>` to get more info on a command")
+            embed.description = "Here are the commands you can use : `/help`, `/menu`, `/cart view`, `/cart build`, `/cart clear`, `/place_order`, `/tip`, `/tictactoe`"
+        else:
+            filepath = os.path.dirname(os.path.abspath(
+                __file__)) + "/data/commands/help.json"
+            # Makes it fit your OS
+            filepath = Utils.path_finder(filepath)
+            to_show = json.load(open(filepath, "r"))
+            embed.title = "/"+option
+            embed.description = to_show[option]["desc"] + \
+                "\n\n**Usage:** `/"+to_show[option]["usage"]+"`"
+            embed.set_footer(text="<> = required, [] = optional")
+
+        return embed
+
+    def item_describe(menu, item) -> discord.Embed():
+        embed = discord.Embed(color=discord.Color.green())
+        embed.title = item
+        for i in menu:
+            if i["ITEM"] == item:
+                embed.description = i["DESC"]
+                embed.add_field(name="Cost", value="₹" + i["COST"])
+                embed.add_field(name="Preparation Time", value=i["TIME"])
+                if "IMAG" in i:
+                    embed.set_image(url=i["IMAG"])
+                break
+        return embed
+        
+        
 
 class Orders():
     pass
@@ -186,4 +221,3 @@ class Fun():
             return None
 
 
-print(Utils.filename_gen("test", "123", "png"))

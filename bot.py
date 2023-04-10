@@ -198,6 +198,7 @@ class CartActions(app_commands.Group):
 
                 # Updates the label of the item in cart button if the page is changed
                 self.in_cart.label = "Select an item"
+                self.in_cart.disabled = True
 
             def update_carts(self, action):
                 """Updates the cart when an item is added or removed, or the select menu option is changed"""
@@ -260,6 +261,8 @@ class CartActions(app_commands.Group):
                             cart[self.select_item.values[0]]["quantity"])
                     else:
                         self.in_cart.label = "In Cart: {0}".format(0)
+                    
+                    self.in_cart.disabled = False
                 for i in self.select_item.options:
                     # Updates the description of the select menu options for each item showing the quantity in the cart
                     i.description = "In Cart : {0}".format(cart[i.label.split(
@@ -360,10 +363,9 @@ class CartActions(app_commands.Group):
             async def in_cart(self, interaction: discord.Interaction, button: discord.ui.Button):
                 """Shows the quantity of the selected item in the cart, can't be clicked"""
                 # In the future, it might be possible to click this button to show the details of the currently selected item
-                if not (Checkers.is_dm_2(interaction)):
-                    if interaction.user.id is not self.og_author:
-                        await interaction.response.send_message("You can't do that!", ephemeral=True)
-                        return
+                embed = Utils.item_describe(menu_pages[self.current_page - 1], self.select_item.values[0])
+                
+                await interaction.response.send_message(embed=embed, ephemeral=True)
 
             @discord.ui.button(label="Add item", style=discord.ButtonStyle.green, row=1)
             async def add_item(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -506,12 +508,25 @@ async def status_task():
     return True
 
 
-@tree.command(name="order", description="Order your stuff")
-async def order(interaction: discord.Interaction, name: str):
-    embed = discord.Embed(title="Ordering {0}".format(name),
-                          description="Ordering {0} for you".format(name),
-                          color=0x74abc1)
-    await interaction.response.send_message("Gotcha {0.user.mention}".format(interaction), embed=embed)
+@tree.command(name="help", description="Helps you with the bot")
+@app_commands.describe(
+    option="The command you need help with"
+)
+@app_commands.choices(
+    option=[
+        app_commands.Choice(name="help", value="help"),
+        app_commands.Choice(name="cart view", value="cart view"),
+        app_commands.Choice(name="cart build", value="cart build"),
+        app_commands.Choice(name="cart clear",  value="cart clear"),
+        app_commands.Choice(name="place_order", value="place_order"),
+        app_commands.Choice(name="menu", value="menu"),
+        app_commands.Choice(name="tip", value="tip"),
+        app_commands.Choice(name="tictactoe", value="tictactoe")
+    ]
+)
+async def help(interaction: discord.Interaction, option: str = None):
+    embed = Utils.help_embed(option)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 @tree.command(name="place_order", description="Confirm and place your order! (DMs only)")
