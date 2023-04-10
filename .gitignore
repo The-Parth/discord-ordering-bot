@@ -3,3 +3,7 @@
 dk
 __pycache__
 tempCodeRunnerFile.py
+data/carts/limbo/*.json
+data/carts/*.json
+!data/carts/0.json
+!data/carts/1.json

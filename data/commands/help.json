@@ -21,7 +21,7 @@
   },
   "tip": {
     "desc": "Sends a tip to the restaurant.",
-    "usage": "tip <amount>"
+    "usage": "tip <email> <amount>"
   },
   "tictactoe": {
     "desc": "Play a game of Tic Tac Toe",
