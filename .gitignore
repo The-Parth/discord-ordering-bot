@@ -7,3 +7,12 @@ data/carts/limbo/*.json
 data/carts/*.json
 !data/carts/0.json
 !data/carts/1.json
+data/wallets/*.json
+!data/wallets/0.json
+!data/wallets/1.json
+!data/wallets/91.json
+data/transactions/*.json
+!data/transactions/0.json
+!data/transactions/1.json
+!data/transactions/91.json
+trials/
