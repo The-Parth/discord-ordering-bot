@@ -91,8 +91,23 @@ class Utils():
             filepath = os.path.dirname(os.path.abspath(
                 __file__)) + "/data/commands/help.json"
             # Makes it fit your OS
+            option = option.lower()
             filepath = Utils.path_finder(filepath)
             to_show = json.load(open(filepath, "r"))
+            if option in ["jesse","walter","walt","white"]:
+                embed.color = 0x408044
+                if option == "jesse":
+                    embed.title = "Hey Mr. White, We need to cook"
+                    embed.description = "Wireeee!!"
+                else :
+                    embed.title = "I am the one who knocks"
+                    embed.description = "So, Say my name"
+                return embed
+            if option not in to_show:
+                embed.title = "This command doesn't exist"
+                embed.description = "Use `/help` to get a list of commands"
+                embed.set_footer(text="<> = required, [] = optional")
+                return embed
             embed.title = "/"+option
             embed.description = to_show[option]["desc"] + \
                 "\n\n**Usage:** `/"+to_show[option]["usage"]+"`"
@@ -112,7 +127,16 @@ class Utils():
                     embed.set_image(url=i["IMAG"])
                 break
         return embed
-        
+
+    async def get_help_options(self, interaction: discord.Interaction, option: str = None):
+        options = ["help", "menu", "cart view", "cart build", "cart clear", "place_order", "menu", "tip", "tictactoe"]
+        if option.lower() == "jesse":
+            return [discord.app_commands.Choice(name="You found the hidden cook", value="jesse")]
+        if option.lower() in ["walter", "walt", "white"]:
+            return [discord.app_commands.Choice(name="You found the one who knocks", value=option.lower())]
+        if option is None:
+            return [discord.app_commands.Choice(name=i, value=i) for i in options]
+        return [discord.app_commands.Choice(name=i, value=i) for i in options if option.lower() in i.lower()]
         
 
 class Orders():

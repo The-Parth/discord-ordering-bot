@@ -510,22 +510,11 @@ async def status_task():
 
 @tree.command(name="help", description="Helps you with the bot")
 @app_commands.describe(
-    option="The command you need help with"
+    command ="The command you need help with"
 )
-@app_commands.choices(
-    option=[
-        app_commands.Choice(name="help", value="help"),
-        app_commands.Choice(name="cart view", value="cart view"),
-        app_commands.Choice(name="cart build", value="cart build"),
-        app_commands.Choice(name="cart clear",  value="cart clear"),
-        app_commands.Choice(name="place_order", value="place_order"),
-        app_commands.Choice(name="menu", value="menu"),
-        app_commands.Choice(name="tip", value="tip"),
-        app_commands.Choice(name="tictactoe", value="tictactoe")
-    ]
-)
-async def help(interaction: discord.Interaction, option: str = None):
-    embed = Utils.help_embed(option)
+@app_commands.autocomplete(command=Utils().get_help_options)
+async def help(interaction: discord.Interaction, command: str = None):
+    embed = Utils.help_embed(command)
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
