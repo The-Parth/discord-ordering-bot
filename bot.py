@@ -5,6 +5,7 @@ import asyncio
 import csv
 from extras import Checkers, Utils, Fun, Orders
 from dotenv import load_dotenv
+import typing
 import datetime
 import json
 
@@ -261,7 +262,7 @@ class CartActions(app_commands.Group):
                             cart[self.select_item.values[0]]["quantity"])
                     else:
                         self.in_cart.label = "In Cart: {0}".format(0)
-                    
+
                     self.in_cart.disabled = False
                 for i in self.select_item.options:
                     # Updates the description of the select menu options for each item showing the quantity in the cart
@@ -363,8 +364,9 @@ class CartActions(app_commands.Group):
             async def in_cart(self, interaction: discord.Interaction, button: discord.ui.Button):
                 """Shows the quantity of the selected item in the cart, can't be clicked"""
                 # In the future, it might be possible to click this button to show the details of the currently selected item
-                embed = Utils.item_describe(menu_pages[self.current_page - 1], self.select_item.values[0])
-                
+                embed = Utils.item_describe(
+                    menu_pages[self.current_page - 1], self.select_item.values[0])
+
                 await interaction.response.send_message(embed=embed, ephemeral=True)
 
             @discord.ui.button(label="Add item", style=discord.ButtonStyle.green, row=1)
@@ -510,7 +512,7 @@ async def status_task():
 
 @tree.command(name="help", description="Helps you with the bot")
 @app_commands.describe(
-    command ="The command you need help with"
+    command="The command you need help with"
 )
 @app_commands.autocomplete(command=Utils().get_help_options)
 async def help(interaction: discord.Interaction, command: str = None):
@@ -627,7 +629,7 @@ async def place_order(interaction: discord.Interaction, email: str):
             memo = str(interaction.user.id) + \
                 f": Order from {str(interaction.user)} of INR {amount} at {timestamp_of_order}"
             # Create the invoice using the Coinbase Commerce API in payments.py
-            inv : dict
+            inv: dict
             if amount == 0:
                 await interaction.response.send_message("We do not accept orders for free items only!", ephemeral=True)
                 return
@@ -1007,6 +1009,20 @@ def check_payments(inv):
     return status.upper()  # returns the status in uppercase
 
 
+@tree.command(name="ping", description="Check the bot's latency")
+async def ping(interaction: discord.Interaction):
+    """Command to check the bot's latency"""
+    await interaction.response.send_message(
+        embed=discord.Embed(
+            title="Pong!",
+            description=f"**Latency:** {round(bot.latency * 1000)}ms",
+            color=discord.Color.blurple()
+        )
+    )
+    msg = await interaction.original_response()
+    msg.add_reaction("🏓")
+
+
 @bot.event
 async def on_message(message: discord.Message):
     """Event handler for messages, detects all messages and responds to ones that satisfy the conditions"""
@@ -1017,7 +1033,8 @@ async def on_message(message: discord.Message):
         """closes the bot if the message is ;;jesse stop and the author is in the owners list"""
         await message.reply("Okay Mr. White, I'm out!")
         await bot.close()  # closes the bot
-    if message.content.lower().startswith(";;del") and message.author.id in owners:
+    if message.content.lower().startswith(";;del") and ((message.author.id in owners) or (message.guild is None)):
+        print(message.guild)
         """deletes messages with ids given after ;;del if the author is in the owners list"""
         ls = message.content.split()  # splits the message into a list, getting all the ids
         if len(ls) >= 2:
@@ -1033,11 +1050,70 @@ async def on_message(message: discord.Message):
             except:
                 pass
 
+
 @tree.command(name="email", description="Your email address")
 async def email(interaction: discord.Interaction):
     """sends the email to the user"""
     await interaction.response.send_message("k:", ephemeral=True)
     print((interaction.user.email))
+
+
+@tree.command(name="feedback", description="Send feedback to the owner")
+async def feedback(interaction: discord.Interaction):
+    #await interaction.response.defer()
+    class FeedbackModal(discord.ui.Modal, title="Submit Feedback"):
+        fb_title = discord.ui.TextInput(
+            style=discord.TextStyle.short,
+            label="Feedback Title",
+            required= True,
+            placeholder="Please give a title to your feedback"
+        )
+
+        content = discord.ui.TextInput(
+            style= discord.TextStyle.long,
+            label="Details",
+            required=False,
+            max_length=1200,
+            placeholder="Give a description of your feedback if you please"
+        )
+        
+        order = discord.ui.TextInput(
+            style = discord.TextStyle.short,
+            label = "Order ID",
+            required = False,
+            max_length = 20,
+            placeholder = "Order ID if this is order related feedback"
+        )
+
+        async def on_submit(self, interaction: discord.Interaction):
+            channel = bot.get_channel(1100058856119345303)
+            embeds = []
+            embeds : typing.List[discord.Embed]
+            self.user : discord.User
+            user = self.user
+            embeds.append(discord.Embed(
+                title = "Feedback from " + user.name + "#" + user.discriminator,
+                description= f"UID : {user.id}",
+                timestamp= datetime.datetime.now(),
+                color= Utils.random_hex_color()
+            ))
+            embeds.append(discord.Embed(
+                title= self.fb_title.value,
+                description= self.content.value,
+                color = embeds[0].color
+            ))
+            if self.order.value is not "":
+                embeds[1].set_footer(text=f"Order ID : {self.order.value}")
+            await channel.send(embeds=embeds)
+            await interaction.response.send_message(f"Thank you for your feedback, {self.user.mention}!", ephemeral=True)
+
+    modal = FeedbackModal()
+    modal.user = interaction.user
+    await interaction.response.send_modal(modal)
+
+    pass
+
+
 @tree.command(name="tictactoe", description="plays tictactoe")
 async def tic(ctx: discord.Interaction):
     """plays tictactoe with the user in a view"""
