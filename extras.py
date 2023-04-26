@@ -127,6 +127,10 @@ class Utils():
                     embed.set_image(url=i["IMAG"])
                 break
         return embed
+    
+    def generate_otp(digits: int) -> int:
+        import random
+        return random.randint(10**(digits-1), 10**digits)
 
     async def get_help_options(self, interaction: discord.Interaction, option: str = None):
         options = ["help", "menu", "cart view", "cart build", "cart clear", "place_order", "menu", "tip", "tictactoe"]

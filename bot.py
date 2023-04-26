@@ -1,16 +1,15 @@
 import discord
 from discord import app_commands
-import os
-import asyncio
-import csv
+import os, asyncio
 from extras import Checkers, Utils, Fun, Orders
 from dotenv import load_dotenv
-import typing
-import datetime
-import json
+import typing, json, datetime
+from mailer import Mailer
 
 
 load_dotenv()
+# Creates a mailer object
+mailobj : Mailer = Mailer()
 
 
 intents = discord.Intents.all()
@@ -23,6 +22,8 @@ owners = [354546286634074115]
 async def on_ready():
     """When the bot is ready"""
     print("Bot is ready, logged in as {0.user}".format(bot))
+    # Initializes and logs in to the mailer object
+    await mailobj.async__init__()
     try:
         from carts import CartActions
         from wallet import WalletActions
@@ -40,11 +41,11 @@ async def on_ready():
     except Exception as e:
         print(e)
         pass
-    
     await tree.sync()
     # Starts the status task forever
     while await status_task():
         continue
+    
 
 
 async def status_task():
@@ -64,7 +65,6 @@ async def status_task():
 async def help(interaction: discord.Interaction, command: str = None):
     embed = Utils.help_embed(command)
     await interaction.response.send_message(embed=embed, ephemeral=True)
-
 
 @tree.command(name="place_order", description="Confirm and place your order! (DMs only)")
 @Checkers.is_dm()
@@ -666,6 +666,31 @@ async def feedback(interaction: discord.Interaction):
 async def feedback_error(interaction: discord.Interaction, error):
     await interaction.response.send_message("Something went wrong, please try again", ephemeral=True)
 
+@tree.command(name="verify", description="Verify your email address")
+async def verify(interaction: discord.Interaction, email: str):
+    """verifies the user's email address"""
+    import re
+    # Check if the email is valid by Regex
+    if (re.fullmatch(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b', email)):
+        pass
+    else:
+        # Error message if email is invalid
+        await interaction.response.send_message("Invalid email address", ephemeral=True)
+    
+    # Generates a 6 digit OTP
+    otp = Utils.generate_otp(6)
+    
+    # Location of the HTML file to be sent via email
+    filepath = os.path.dirname(os.path.abspath(
+        __file__)) + "/data/commands/otp.html"  
+    # Makes it fit your OS
+    filepath = Utils.path_finder(filepath)
+    # Saves it to a string and replaces the placeholders with the user's name and the OTP
+    content = open(filepath, "r").read().format(interaction.user.name, interaction.user.name+"#"+interaction.user.discriminator, otp)
+    
+    # Sends the email
+    await mailobj.async_send_mail(email, interaction.user.name, "Your OTP for ", content)
+    await interaction.response.send_message("OTP sent to {0}".format(email), ephemeral=True)
 
 @tree.command(name="tictactoe", description="plays tictactoe")
 async def tic(ctx: discord.Interaction):
