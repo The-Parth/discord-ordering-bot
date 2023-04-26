@@ -10,6 +10,7 @@ A bot which allows people to buy stuff from you using a discord bot!
 - Easy deployment
 - Integrated crypto payments
 - Uses interactions from discord.py 2.0
+- In-built email address verification using SMTP
 
 ## Installation
 
