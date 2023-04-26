@@ -94,12 +94,12 @@ class Utils():
             option = option.lower()
             filepath = Utils.path_finder(filepath)
             to_show = json.load(open(filepath, "r"))
-            if option in ["jesse","walter","walt","white"]:
+            if option in ["jesse", "walter", "walt", "white"]:
                 embed.color = 0x408044
                 if option == "jesse":
                     embed.title = "Hey Mr. White, We need to cook"
                     embed.description = "Wireeee!!"
-                else :
+                else:
                     embed.title = "I am the one who knocks"
                     embed.description = "So, Say my name"
                 return embed
@@ -127,13 +127,14 @@ class Utils():
                     embed.set_image(url=i["IMAG"])
                 break
         return embed
-    
+
     def generate_otp(digits: int) -> int:
         import random
         return random.randint(10**(digits-1), 10**digits)
 
     async def get_help_options(self, interaction: discord.Interaction, option: str = None):
-        options = ["help", "menu", "cart view", "cart build", "cart clear", "place_order", "menu", "tip", "tictactoe"]
+        options = ["help", "menu", "cart view", "cart build",
+                   "cart clear", "place_order", "menu", "tip", "tictactoe"]
         if option.lower() == "jesse":
             return [discord.app_commands.Choice(name="You found the hidden cook", value="jesse")]
         if option.lower() in ["walter", "walt", "white"]:
@@ -141,7 +142,47 @@ class Utils():
         if option is None:
             return [discord.app_commands.Choice(name=i, value=i) for i in options]
         return [discord.app_commands.Choice(name=i, value=i) for i in options if option.lower() in i.lower()]
-        
+
+    class OTPView(discord.ui.View):
+        def __init__(self, sent_otp: int, tries_left: int):
+            super().__init__()
+            self.sent_otp = sent_otp
+            self.tries_left = tries_left
+
+        async def on_timeout(self):
+            for child in self.children:
+                child.disabled = True
+
+        @discord.ui.button(label="Retry", style=discord.ButtonStyle.red)
+        async def retry(self,  interaction: discord.Interaction, button: discord.ui.Button):
+            modal = Utils.OTPModal()
+            modal.tries_left = self.tries_left
+            modal.sent_otp = self.sent_otp
+            await self.on_timeout()
+            await interaction.response.send_modal(modal)
+
+    class OTPModal(discord.ui.Modal, title="An OTP has been sent to your email"):
+        otp = discord.ui.TextInput(
+            style=discord.TextStyle.short,
+            required=True,
+            min_length=6,
+            max_length=6,
+            placeholder="Enter OTP",
+            label="OTP")
+        sent_otp: int
+        tries_left: int = 3
+
+        async def on_submit(self, interaction: discord.Interaction):
+            self.tries_left -= 1
+            if self.otp.value == self.sent_otp:
+                await interaction.response.send_message("Email Verified", ephemeral=True)
+            else:
+                if self.tries_left == 0:
+                    await interaction.response.send_message("Out of Tries. Please try sending a new OTP.", ephemeral=True)
+                else:
+                    OTPView = Utils.OTPView(self.sent_otp, self.tries_left)
+                    await interaction.response.send_message(f"Invalid OTP, You have {self.tries_left} tries left", view=OTPView, ephemeral=True)
+
 
 class Orders():
     pass
@@ -247,5 +288,3 @@ class Fun():
                 return self.Tie
 
             return None
-
-

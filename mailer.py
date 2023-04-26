@@ -18,7 +18,7 @@ class Mailer:
             print("Connecting to mail server...")
             await self.server.connect()
             print("Connected to mail server")
-            await self.server.login(username = sender,password= os.getenv("EMAIL_PASSWORD"), timeout=30)
+            await self.server.login(username = sender,password= os.getenv("EMAIL_PASSWORD"))
             print("Logged in to mail server as " + sender)
         except:
             print("Error connecting to mail server")
@@ -30,8 +30,20 @@ class Mailer:
         msg['To'] = formataddr((str(Header(recipient_name, 'utf-8')), recipient))
         msg['Cc'] = ""
         msg['Bcc'] = ""
-        await self.server.send_message(msg)
-        print("Mailed " + recipient)
+        while True:
+            try:
+                await self.server.send_message(msg)
+                print("Mailed " + recipient)
+                return
+            except aiosmtplib.SMTPServerDisconnected:
+                print("Server disconnected, reconnecting...")
+                self.server = aiosmtplib.SMTP(hostname=smtp, port=port, use_tls=True)
+                await self.server.connect()
+                await self.server.login(username = sender,password= os.getenv("EMAIL_PASSWORD"))
+                print("Logged in to mail server as " + sender)
+            except:
+                print("Error sending mail to " + recipient)
+                return
 
     
 

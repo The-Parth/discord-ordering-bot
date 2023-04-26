@@ -1,15 +1,18 @@
 import discord
 from discord import app_commands
-import os, asyncio
+import os
+import asyncio
 from extras import Checkers, Utils, Fun, Orders
 from dotenv import load_dotenv
-import typing, json, datetime
+import typing
+import json
+import datetime
 from mailer import Mailer
 
 
 load_dotenv()
 # Creates a mailer object
-mailobj : Mailer = Mailer()
+mailobj: Mailer = Mailer()
 
 
 intents = discord.Intents.all()
@@ -35,7 +38,7 @@ async def on_ready():
         wallet = WalletActions(bot)
         # Adds the wallet command group to the tree
         tree.add_command(wallet)
-        
+
         # Syncs the tree globally
         await tree.sync()
     except Exception as e:
@@ -45,7 +48,6 @@ async def on_ready():
     # Starts the status task forever
     while await status_task():
         continue
-    
 
 
 async def status_task():
@@ -65,6 +67,7 @@ async def status_task():
 async def help(interaction: discord.Interaction, command: str = None):
     embed = Utils.help_embed(command)
     await interaction.response.send_message(embed=embed, ephemeral=True)
+
 
 @tree.command(name="place_order", description="Confirm and place your order! (DMs only)")
 @Checkers.is_dm()
@@ -134,7 +137,7 @@ async def place_order(interaction: discord.Interaction, email: str):
                 # Creates the embed
                 embeds = []
                 # Tells the linter that the embeds variable is a list of embeds
-                embeds : typing.List[discord.Embed]
+                embeds: typing.List[discord.Embed]
                 rand_color = Utils.random_hex_color()
                 for i in menu_string:
                     # Creates the embed list for each page by adding the menu string elemnts to the embed
@@ -666,6 +669,7 @@ async def feedback(interaction: discord.Interaction):
 async def feedback_error(interaction: discord.Interaction, error):
     await interaction.response.send_message("Something went wrong, please try again", ephemeral=True)
 
+
 @tree.command(name="verify", description="Verify your email address")
 async def verify(interaction: discord.Interaction, email: str):
     """verifies the user's email address"""
@@ -676,21 +680,26 @@ async def verify(interaction: discord.Interaction, email: str):
     else:
         # Error message if email is invalid
         await interaction.response.send_message("Invalid email address", ephemeral=True)
-    
+
     # Generates a 6 digit OTP
     otp = Utils.generate_otp(6)
-    
+
     # Location of the HTML file to be sent via email
     filepath = os.path.dirname(os.path.abspath(
-        __file__)) + "/data/commands/otp.html"  
+        __file__)) + "/data/commands/otp.html"
     # Makes it fit your OS
     filepath = Utils.path_finder(filepath)
     # Saves it to a string and replaces the placeholders with the user's name and the OTP
-    content = open(filepath, "r").read().format(interaction.user.name, interaction.user.name+"#"+interaction.user.discriminator, otp)
-    
+    content = open(filepath, "r").read().format(interaction.user.name,
+                                                interaction.user.name+"#"+interaction.user.discriminator, otp)
     # Sends the email
     await mailobj.async_send_mail(email, interaction.user.name, "Your OTP for The-Parth", content)
-    await interaction.response.send_message("OTP sent to {0}".format(email), ephemeral=True)
+
+    modal = Utils.OTPModal()
+    modal.sent_otp = str(otp)
+    modal.tries_left = 3
+    await interaction.response.send_modal(modal)
+
 
 @tree.command(name="tictactoe", description="plays tictactoe")
 async def tic(ctx: discord.Interaction):
