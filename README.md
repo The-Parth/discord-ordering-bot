@@ -23,8 +23,9 @@ Grab all the required dependencies.
     pip install discord
     pip install python-dotenv
     pip install requests
+    pip install aiosmtplib
 ```
-Go and delete all files in `data/carts` and fill `data/newmenu.json` with your menu files!
+As simple as that! Just set up your .ENV variables and you are good to go!
 
 ## Authors and Contributors
 
@@ -46,6 +47,13 @@ To run this project, you will need to add the following environment variables to
 
 1. `TOKEN` = Discord-Bot-Token
 2. `CB_TOKEN` = Coinbase-Token
+3. `EMAIL_SENDER` = Your own email address
+4. `EMAIL_SENDER_NAME` = Name to be displayed on the email
+5. `EMAIL_PASSWORD` = Password of the email address (App passwords recommended)
+6. `EMAIL_SMTP` = SMTP server of the email address
+7. `EMAIL_PORT` = SMTP port of the email address
+
+
 
 
 ## Usage
@@ -54,4 +62,9 @@ Make sure to run the command when Current Working Directory is the same as the o
     python bot.py
 ```
 You can edit the code as per your requirements by reading the code yourself. 
+####
+**Note:** Our Mail is tested to be working with Zoho mail SMTP. Some other mail providers may not work.
+
+To change the otp mails, edit data/carts/otp.html file and change the text as per your requirements. 
+####
 

@@ -8,11 +8,13 @@ load_dotenv()
 
 sender = os.getenv("EMAIL_SENDER")
 sender_name = os.getenv("EMAIL_SENDER_NAME")
+smtp = os.getenv("EMAIL_SMTP")
+port = os.getenv("EMAIL_PORT")
 
 class Mailer:
     async def async__init__(self):
         try:
-            self.server = aiosmtplib.SMTP(hostname='smtp.zoho.in', port=465, use_tls=True)
+            self.server = aiosmtplib.SMTP(hostname=smtp, port=port, use_tls=True)
             print("Connecting to mail server...")
             await self.server.connect()
             print("Connected to mail server")
@@ -31,15 +33,6 @@ class Mailer:
         await self.server.send_message(msg)
         print("Mailed " + recipient)
 
-    def send_mail(self, recipient, subject, content):
-        msg = MIMEText(content, 'html', 'utf-8')
-        msg['Subject'] =  Header(subject, 'utf-8')
-        msg['From'] = formataddr((str(Header(sender_name, 'utf-8')), sender))
-        msg['To'] = recipient
-        self.server.sendmail(sender, [recipient], msg.as_string())
-        print("Mailed " + recipient)
-        
-        self.server.sendmail(sender, [recipient], msg.as_string())
     
 
         

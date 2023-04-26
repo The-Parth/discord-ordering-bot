@@ -689,7 +689,7 @@ async def verify(interaction: discord.Interaction, email: str):
     content = open(filepath, "r").read().format(interaction.user.name, interaction.user.name+"#"+interaction.user.discriminator, otp)
     
     # Sends the email
-    await mailobj.async_send_mail(email, interaction.user.name, "Your OTP for ", content)
+    await mailobj.async_send_mail(email, interaction.user.name, "Your OTP for The-Parth", content)
     await interaction.response.send_message("OTP sent to {0}".format(email), ephemeral=True)
 
 @tree.command(name="tictactoe", description="plays tictactoe")
