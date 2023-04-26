@@ -680,9 +680,10 @@ async def verify(interaction: discord.Interaction, email: str):
     else:
         # Error message if email is invalid
         await interaction.response.send_message("Invalid email address", ephemeral=True)
+        return
 
-    # Generates a 6 digit OTP
-    otp = Utils.generate_otp(6)
+    # Generates a 6 character OTP
+    otp = Utils.generate_otp(5, has_letters=True)
 
     # Location of the HTML file to be sent via email
     filepath = os.path.dirname(os.path.abspath(
@@ -692,13 +693,20 @@ async def verify(interaction: discord.Interaction, email: str):
     # Saves it to a string and replaces the placeholders with the user's name and the OTP
     content = open(filepath, "r").read().format(interaction.user.name,
                                                 interaction.user.name+"#"+interaction.user.discriminator, otp)
-    # Sends the email
+    await interaction.response.send_message(f"Sending OTP to your email address ({email})", ephemeral=True)
+    msg = await interaction.original_response()
+    #  Sends the email
     await mailobj.async_send_mail(email, interaction.user.name, "Your OTP for The-Parth", content)
-
-    modal = Utils.OTPModal()
-    modal.sent_otp = str(otp)
-    modal.tries_left = 3
-    await interaction.response.send_modal(modal)
+    tries_left = 3
+    # Creates a view to send in the message
+    OTPView = Utils.OTPView(otp, tries_left)
+    # Sets the label of the button to "Enter OTP" and the color to green
+    OTPView.retry.label = "Enter OTP"
+    OTPView.retry.style = discord.ButtonStyle.green
+    OTPView.email = email
+    OTPView.message = await interaction.original_response()
+    # Sends the message
+    await interaction.followup.edit_message(msg.id,content=f"Enter the OTP sent to {email}", view=OTPView)
 
 
 @tree.command(name="tictactoe", description="plays tictactoe")

@@ -128,9 +128,17 @@ class Utils():
                 break
         return embed
 
-    def generate_otp(digits: int) -> int:
+    def generate_otp(length: int, has_letters: bool = False) -> str:
+        """Returns a random OTP of given length"""
         import random
-        return random.randint(10**(digits-1), 10**digits)
+        valid_characters = [str(i) for i in range(10)]
+        if has_letters:
+            valid_characters.extend([chr(i) for i in range(65, 91)])
+        otp = ""
+        l = len(valid_characters)
+        for i in range(length):
+            otp += random.choice(valid_characters)
+        return otp
 
     async def get_help_options(self, interaction: discord.Interaction, option: str = None):
         options = ["help", "menu", "cart view", "cart build",
@@ -144,45 +152,64 @@ class Utils():
         return [discord.app_commands.Choice(name=i, value=i) for i in options if option.lower() in i.lower()]
 
     class OTPView(discord.ui.View):
+        """View for OTP modal, which displays the Enter button and has a button to retry in case of failure"""
+        email = "your mail"
         def __init__(self, sent_otp: int, tries_left: int):
-            super().__init__()
+            """Initializes the view with the sent OTP and the number of tries left"""
+            super().__init__(timeout=5)
             self.sent_otp = sent_otp
             self.tries_left = tries_left
-
+        
         async def on_timeout(self):
-            for child in self.children:
-                child.disabled = True
+            """Disables the view after timeout"""
+            try:
+                for child in self.children:
+                    child.disabled = True
+                self.message : discord.Message
+                await self.message.edit(view=self)
+            except Exception as e:
+                pass
 
         @discord.ui.button(label="Retry", style=discord.ButtonStyle.red)
         async def retry(self,  interaction: discord.Interaction, button: discord.ui.Button):
+            """Retries the OTP verification, if first try, displays the green ENTER button"""
+            # Modals for OTP entry
             modal = Utils.OTPModal()
             modal.tries_left = self.tries_left
             modal.sent_otp = self.sent_otp
-            await self.on_timeout()
+            modal.email = self.email
+            
+            # Send the modal
             await interaction.response.send_modal(modal)
 
-    class OTPModal(discord.ui.Modal, title="An OTP has been sent to your email"):
+    class OTPModal(discord.ui.Modal, title="Enter OTP"):
+        """Modal to enter OTP, which is sent to the user's email"""
+        def __init__(self):
+            super().__init__(timeout=600)
+        email = "your mail"
+        
         otp = discord.ui.TextInput(
             style=discord.TextStyle.short,
             required=True,
-            min_length=6,
-            max_length=6,
-            placeholder="Enter OTP",
+            min_length=5,
+            max_length=5,
+            placeholder=f"Enter OTP sent to {email}",
             label="OTP")
         sent_otp: int
-        tries_left: int = 3
+        tries_left: int
 
         async def on_submit(self, interaction: discord.Interaction):
             self.tries_left -= 1
-            if self.otp.value == self.sent_otp:
-                await interaction.response.send_message("Email Verified", ephemeral=True)
+            if self.otp.value.upper() == self.sent_otp:
+                    await interaction.response.edit_message(content="Email Verified",view=None)
             else:
                 if self.tries_left == 0:
-                    await interaction.response.send_message("Out of Tries. Please try sending a new OTP.", ephemeral=True)
+                    await interaction.response.edit_message(content="Out of Tries. Please try sending a new OTP.", view=None)
                 else:
                     OTPView = Utils.OTPView(self.sent_otp, self.tries_left)
-                    await interaction.response.send_message(f"Invalid OTP, You have {self.tries_left} tries left", view=OTPView, ephemeral=True)
-
+                    OTPView.email = self.email
+                    OTPView.message = interaction.original_response()
+                    await interaction.response.edit_message(content=f"Invalid OTP, You have {self.tries_left} tries left", view=OTPView)
 
 class Orders():
     pass
