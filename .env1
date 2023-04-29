@@ -1,6 +1,11 @@
 TOKEN = Discord-Bot-TOKEN
 CB_TOKEN = Coinbase-Token
 
+ORDER_CHANNEL = ID of channel which logs orders
+FEEDBACK_CHANNEL = ID of channel which logs Feedback
+
 EMAIL_SENDER = Your own email address
 EMAIL_SENDER_NAME = Name to be displayed on the email
 EMAIL_PASSWORD = Password of the email address (App passwords recommended)
+EMAIL_SMTP = smtp server address (eg. smtp.gmail.com)
+EMAIL_PORT = Port of the SMTP server

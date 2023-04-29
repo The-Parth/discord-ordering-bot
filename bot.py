@@ -16,9 +16,12 @@ mailobj: Mailer = Mailer()
 
 
 intents = discord.Intents.all()
-bot = discord.Client(intents=intents)
+bot = discord.AutoShardedClient(intents=intents)
 tree = discord.app_commands.CommandTree(bot)
 owners = [354546286634074115]
+
+order_channel = int(os.getenv("ORDER_CHANNEL"))
+feedback_channel = int(os.getenv("FEEDBACK_CHANNEL"))
 
 
 @bot.event
@@ -108,7 +111,7 @@ async def place_order(interaction: discord.Interaction, email: str):
         @discord.ui.button(label="Confirm", style=discord.ButtonStyle.green)
         async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
             """Confirms the order"""
-            order_channel = bot.get_channel(1090984464261320724)
+            order_channel = bot.get_channel(order_channel)
             # Checks if the cart is empty
             if cart == {}:
                 embed = discord.Embed(title="Your Cart is Empty",
@@ -268,7 +271,8 @@ async def place_order(interaction: discord.Interaction, email: str):
                 if stats == 'EXPIRED':
                     """Case when the invoice is expired, and the user hasn't been notified yet"""
                     embed = discord.Embed(title=f"Invoice {inv['code']} Expired!",
-                                          description=f"Your invoice with id {inv['id']} of INR {amount} has expired and can no longer be paid. Please make sure to pay within 60 minutes of placing the order.",
+                                          description=f"Your invoice with id {inv['id']} of INR {amount} has expired and can no" + \
+                                          "longer be paid. Please make sure to pay within 60 minutes of placing the order.",
                                           color=0xd62d2d)
                     embed.set_footer(
                         text="You can try again with a new invoice.")
@@ -571,7 +575,7 @@ async def ping(interaction: discord.Interaction):
         )
     )
     msg = await interaction.original_response()
-    msg.add_reaction("🏓")
+    await msg.add_reaction("🏓")
 
 
 @bot.event
@@ -583,6 +587,7 @@ async def on_message(message: discord.Message):
     if message.content.lower() == ";;jesse stop" and message.author.id in owners:
         """closes the bot if the message is ;;jesse stop and the author is in the owners list"""
         await message.reply("Okay Mr. White, I'm out!")
+        print ("Bot closed by", message.author)
         await bot.close()  # closes the bot
     if message.content.lower().startswith(";;del") and ((message.author.id in owners) or (message.guild is None)):
         """deletes messages with ids given after ;;del if the author is in the owners list"""
@@ -600,18 +605,11 @@ async def on_message(message: discord.Message):
             except:
                 pass
 
-
-@tree.command(name="email", description="Your email address")
-async def email(interaction: discord.Interaction):
-    """sends the email to the user"""
-    await interaction.response.send_message("k:", ephemeral=True)
-    print((interaction.user.email))
-
-
 @tree.command(name="feedback", description="Send feedback to the owner")
 async def feedback(interaction: discord.Interaction):
     # await interaction.response.defer()
     class FeedbackModal(discord.ui.Modal, title="Submit Feedback"):
+        """The feedback modal"""
         fb_title = discord.ui.TextInput(
             style=discord.TextStyle.short,
             label="Feedback Title",
@@ -636,11 +634,13 @@ async def feedback(interaction: discord.Interaction):
         )
 
         async def on_submit(self, interaction: discord.Interaction):
-            channel = bot.get_channel(1100058856119345303)
+            """When the user submits the feedback"""
+            channel = bot.get_channel(feedback_channel)
             embeds = []
-            embeds: typing.List[discord.Embed]
+            embeds: typing.List[discord.Embed] # type hinting
             self.user: discord.User
             user = self.user
+            # First embed, contains the user's avatar, name, discriminator and id
             embeds.append(discord.Embed(
                 title="Feedback from " + user.name + "#" + user.discriminator,
                 description=f"UID : {user.id}",
@@ -648,11 +648,15 @@ async def feedback(interaction: discord.Interaction):
                 color=Utils.random_hex_color()
             ))
             embeds[0].set_thumbnail(url=user.avatar.url)
+            
+            # Second embed, contains the feedback title and description
             embeds.append(discord.Embed(
                 title=self.fb_title.value,
                 description=self.content.value,
                 color=embeds[0].color
             ))
+            
+            # If the user has provided an order id, add it to the footer of the second embed
             if self.order.value != "":
                 embeds[1].set_footer(text=f"Order ID : {self.order.value}")
             await channel.send(embeds=embeds)
@@ -670,9 +674,14 @@ async def feedback_error(interaction: discord.Interaction, error):
     await interaction.response.send_message("Something went wrong, please try again", ephemeral=True)
 
 
-@tree.command(name="verify", description="Verify your email address")
+@tree.command(name="email", description="Add/change the email address associated with your account")
+@app_commands.describe(
+    email = "The email address to be added"
+)
+@app_commands.checks.cooldown(1, 300, key = lambda i: i.user.id)
 async def verify(interaction: discord.Interaction, email: str):
     """verifies the user's email address"""
+    """if the user has a pre-existing email address, it will be replaced with the new one"""
     import re
     # Check if the email is valid by Regex
     if (re.fullmatch(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b', email)):
@@ -708,9 +717,14 @@ async def verify(interaction: discord.Interaction, email: str):
     # Sends the message
     await interaction.followup.edit_message(msg.id,content=f"Enter the OTP sent to {email}", view=OTPView)
 
-
+@verify.error
+async def verify_error(interaction: discord.Interaction, error):
+    await interaction.response.send_message(str(error), ephemeral=True)
+    
 @tree.command(name="tictactoe", description="plays tictactoe")
 async def tic(ctx: discord.Interaction):
     """plays tictactoe with the user in a view"""
     await ctx.response.send_message('Tic Tac Toe: X goes first', view=Fun.TicTacToe())
+    
+
 bot.run(os.getenv("TOKEN"))

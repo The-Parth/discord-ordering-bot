@@ -8,7 +8,8 @@ from extras import Utils
 
 
 class Actions:
-    def get_wallet(self, user_id):
+    def make_wallet(self, user_id):
+        # Gets the user's wallet
         filepath = os.path.dirname(os.path.abspath(
             __file__)) + f"/data/wallets/{str(user_id)}.json"
         # Makes it fit your OS
@@ -17,8 +18,23 @@ class Actions:
             user_file = {
                 "user_id": str(user_id),
                 "balance": 0,
+                "email": "",
             }
             json.dump(user_file, open(filepath, "w"), indent=4)
+        return
+    
+    def add_email(self, user_id, email):
+        wallet = self.get_wallet(user_id)
+        wallet["data"]["email"] = email
+        json.dump(wallet["data"], open(wallet["filepath"], "w"), indent=4)
+        
+        
+    def get_wallet(self, user_id):
+        filepath = os.path.dirname(os.path.abspath(
+            __file__)) + f"/data/wallets/{str(user_id)}.json"
+        # Makes it fit your OS
+        filepath = Utils.path_finder(filepath)
+        self.make_wallet(user_id)
         user_data = json.load(open(filepath, 'r'))
         return {"data": user_data, "filepath": filepath}
 
@@ -68,6 +84,7 @@ class WalletActions(app_commands.Group):
     def __init__(self, bot: discord.Client):
         super().__init__(name="wallet", description="Perform actions on your wallet")
         self.bot = bot
+        
     @app_commands.command(name="view", description="View your wallet")
     async def view_wallet(self, interaction: discord.Interaction):
         bot = self.bot

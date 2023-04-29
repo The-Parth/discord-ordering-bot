@@ -53,6 +53,8 @@ To run this project, you will need to add the following environment variables to
 5. `EMAIL_PASSWORD` = Password of the email address (App passwords recommended)
 6. `EMAIL_SMTP` = SMTP server of the email address
 7. `EMAIL_PORT` = SMTP port of the email address
+8. `ORDER_CHANNEL` = Channel ID of the channel where the bot will send the order details
+9. `FEEDBACK_CHANNEL` = Channel ID of the channel where the bot will send the feedback
 
 
 

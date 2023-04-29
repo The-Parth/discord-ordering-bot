@@ -150,13 +150,25 @@ class Utils():
         if option is None:
             return [discord.app_commands.Choice(name=i, value=i) for i in options]
         return [discord.app_commands.Choice(name=i, value=i) for i in options if option.lower() in i.lower()]
+    
+    def order_id_gen(self, user_id):
+        """Generates an order ID based on the TIME and USER_ID"""
+        user_id = int(user_id)
+        from external_modules import Numpy as np
+        b36 = np.base_repr(user_id, base=36)
+        year = np.base_repr(int(datetime.datetime.utcnow().year),base=36)
+        time = np.base_repr(int(datetime.datetime.timestamp((datetime.datetime.utcnow())))%100000000, base=36)
+        order_id = f"{time}_{b36}_{year}"
+        return order_id
+        
+        
 
     class OTPView(discord.ui.View):
         """View for OTP modal, which displays the Enter button and has a button to retry in case of failure"""
         email = "your mail"
         def __init__(self, sent_otp: int, tries_left: int):
             """Initializes the view with the sent OTP and the number of tries left"""
-            super().__init__(timeout=5)
+            super().__init__(timeout=600)
             self.sent_otp = sent_otp
             self.tries_left = tries_left
         
@@ -178,6 +190,7 @@ class Utils():
             modal.tries_left = self.tries_left
             modal.sent_otp = self.sent_otp
             modal.email = self.email
+            modal.otp.placeholder = f"Enter OTP sent to {self.email}"
             
             # Send the modal
             await interaction.response.send_modal(modal)
@@ -201,7 +214,9 @@ class Utils():
         async def on_submit(self, interaction: discord.Interaction):
             self.tries_left -= 1
             if self.otp.value.upper() == self.sent_otp:
-                    await interaction.response.edit_message(content="Email Verified",view=None)
+                    from wallet import Actions
+                    Actions().add_email(interaction.user.id, self.email)
+                    await interaction.response.edit_message(content=f"Email Verified! The email **{self.email}** is now associated with your account!",view=None)
             else:
                 if self.tries_left == 0:
                     await interaction.response.edit_message(content="Out of Tries. Please try sending a new OTP.", view=None)
