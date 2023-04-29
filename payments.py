@@ -82,5 +82,12 @@ class Payment:
         status = response.json()["data"]["status"]
         print("\nTransaction status: ", status)
         return status
+    
+    def check_payments(inv):
+        """checks the status of the invoice by calling the check method of the Payment class"""
+        from payments import Payment
+        # calls the check method of the Payment class
+        status = Payment.check(inv['id'])
+        return status.upper()  # returns the status in uppercase
 
 

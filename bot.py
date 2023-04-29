@@ -1,12 +1,12 @@
 import discord
-from discord import app_commands
 import os
 import asyncio
-from extras import Checkers, Utils, Fun, Orders
-from dotenv import load_dotenv
-import typing
-import json
 import datetime
+import json
+import typing
+from discord import app_commands
+from extras import Checkers, Utils
+from dotenv import load_dotenv
 from mailer import Mailer
 
 
@@ -22,6 +22,8 @@ owners = [354546286634074115]
 
 order_channel = int(os.getenv("ORDER_CHANNEL"))
 feedback_channel = int(os.getenv("FEEDBACK_CHANNEL"))
+
+bot_started = datetime.datetime.timestamp(datetime.datetime.now())
 
 
 @bot.event
@@ -271,7 +273,7 @@ async def place_order(interaction: discord.Interaction, email: str):
                 if stats == 'EXPIRED':
                     """Case when the invoice is expired, and the user hasn't been notified yet"""
                     embed = discord.Embed(title=f"Invoice {inv['code']} Expired!",
-                                          description=f"Your invoice with id {inv['id']} of INR {amount} has expired and can no" + \
+                                          description=f"Your invoice with id {inv['id']} of INR {amount} has expired and can no" +
                                           "longer be paid. Please make sure to pay within 60 minutes of placing the order.",
                                           color=0xd62d2d)
                     embed.set_footer(
@@ -338,123 +340,83 @@ async def place_order_error(interaction: discord.Interaction, error):
 @Checkers.is_dm()
 @app_commands.describe(
     amount="The amount you want to tip us! We accept payments in INR",
-    email="Your email address to which the invoice must be sent!"
 )
 async def tip(interaction: discord.Interaction,
-              amount: app_commands.Range[int, 1, None],
-              email: str):
+              amount: app_commands.Range[int, 1, None]):
     """Function to send tips to the restaurant (bot owner) using invoices (powered by Coinbase Commerce)"""
     """To be used in DMs only, and real money is involved, so be careful"""
+    class TipView(discord.ui.View):
+        color = None
+        def __init__(self):
+            super().__init__(timeout=120)
+            self.value = None
 
-    # check if email is valid using regex
-    import re
-    if (re.fullmatch(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b', email)):
-        pass
-    else:
-        # Error message if email is invalid
-        await interaction.response.send_message("Invalid email address!", ephemeral=True)
-        return
+        async def on_timeout(self):
+            for child in self.children:
+                child.disabled = True
 
-    # Commented out for testing purposes
-    # await interaction.response.send_message(f"A measly {amount}, sadge, sent invoice to {email},{interaction.user}")
-    from payments import Payment
-    # Generate a unique memo for the invoice using the user's name and the amount
-    memo = str(interaction.user.id) + \
-        f": Tip from {str(interaction.user)} of INR {amount}"
-    # Create the invoice using the Coinbase Commerce API in payments.py
-    inv = Payment.invoice(str(interaction.user), email, amount, "INR", memo)
+        @discord.ui.button(label="Confirm", style=discord.ButtonStyle.green)
+        async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+            from wallet import Actions
+            embed = discord.Embed()
+            wallet = Actions().get_wallet(interaction.user.id)
+            if wallet["data"]["balance"] < amount:
+                embed.title = "Insufficient Balance!"
+                embed.description = "You don't have enough balance in your wallet to send this tip!"
+                embed.set_footer(
+                    text="Please use /wallet reload to recharge your wallet.")
+                embed.color = self.color
+                await interaction.response.edit_message(embed=embed, view=None)
+                return
+            else:
+                try:
+                    Actions().remove_balance(interaction.user.id, amount)
+                except Exception as e:
+                    await interaction.response.edit_message(content=f"Error: {e}", embed=None, view=None)
+                    return
 
-    # Make an the invoice with a button to pay the invoice
-    embed = discord.Embed(title=f"Invoice {inv['code']} created!",
-                          description=f"Payment link : {inv['url']}",
-                          color=0xc6be0f)
-    embed.add_field(name="Amount", value=f"INR {amount}", inline=True)
-    embed.add_field(name="Order Code", value=inv['code'], inline=True)
-    embed.add_field(name="Tx. ID", value=str(inv['id']), inline=True)
-    view = discord.ui.View()
-    view.add_item(item=discord.ui.Button(label="Make Payment", url=inv['url']))
+                embed.title = "Tip sent!"
+                new_bal = Actions().get_wallet(
+                    interaction.user.id)['data']['balance']
+                embed.description = f"Your tip of **₹ {amount}** has been sent to the restaurant!" + \
+                    f"\nYour new balance is **₹ {new_bal}**"
+                embed.set_footer(text="Thank you for your support!")
+                embed.color = self.color
+                await interaction.response.edit_message(embed=embed, view=None)
+                channel = bot.get_channel(feedback_channel)
+                fe = discord.Embed(
+                    title="New Tip from {0}#{1}".format(
+                    interaction.user.name, interaction.user.discriminator),
+                    description = f"**Amount:** ₹ {amount}\n",
+                    timestamp=datetime.datetime.now(),
+                    color = self.color
+                )
+                fe.set_footer(text="User ID: {0}".format(interaction.user.id))
+                await channel.send(embed=fe)
+                                   
+                return
 
-    # Send the invoice to the user
+        @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
+        async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+            embed = discord.Embed(title="Tip cancelled!",
+                                  description="Your tip has been cancelled!",
+                                  color= self.color)
+            await interaction.response.edit_message(embed=embed, view=None)
+            
+    embed = discord.Embed(title="Confirm your tip",
+                          description=f"Please confirm your tip of **₹ {amount}** by clicking the **Confirm** button below.",
+                          color= Utils.random_hex_color())
+    embed.set_footer(text="This will be deducted from your wallet balance.")
+    view = TipView()
+    view.color = embed.color
     await interaction.response.send_message(embed=embed, view=view)
-    msg = await interaction.original_response()
-    count = 0
-    flag_check_coming = False
-    while True:
-        """
-        Check for payment status every 10 seconds, and notify the user when the payment is complete
-        done using the Coinbase Commerce API in payments.py
-        this function below is a coroutine, so it can be awaited
-        this makes sure that the bot doesn't get blocked while waiting for the payment to complete
-        """
-        stats = check_payments(inv)
-        count += 1
-
-        # print every 10 seconds for debugging purposes
-        print(f"{count}. Payment Stats for {inv['code']} = {stats}")
-
-        # check status every 10 seconds
-        if stats == 'PAYMENT_PENDING' and flag_check_coming == False:
-            """Case when the payment is marked as pending, and the user hasn't been notified yet"""
-            flag_check_coming = True
-            embed = discord.Embed(title=f"Payment for Invoice {inv['code']} Pending!",
-                                  description=f"Check status here : {inv['url']}",
-                                  color=0x3f7de0)
-            embed.set_footer(
-                text="We will notify you when the payment is complete.")
-            await msg.reply(embed=embed)
-
-        if stats == 'PAID':
-            """Case when the payment is complete, and the user hasn't been notified yet"""
-            embed = discord.Embed(title=f"Invoice {inv['code']} Paid Successfully!",
-                                  description=f"View Charge : {inv['url']}",
-                                  color=0x20e364)
-            embed.add_field(name="Amount", value=f"INR {amount}", inline=True)
-            embed.add_field(name="Order Code", value=inv['code'], inline=True)
-            embed.add_field(name="Tx. ID", value=str(inv['id']), inline=True)
-            embed.set_footer(
-                text="Thank you for shopping with us! See you soon!")
-            view = discord.ui.View()
-            view.add_item(item=discord.ui.Button(
-                label="View Charge", url=inv['url']))
-            await msg.reply(embed=embed, view=view)
-            break  # break out of the loop
-
-        if stats == 'VOID':
-            """Case when the invoice is voided, and the user hasn't been notified yet"""
-            embed = discord.Embed(title=f"Invoice {inv['code']} Voided!",
-                                  description=f"Your invoice with id {inv['id']} of INR {amount} has been voided and can no longer be paid.",
-                                  color=0xd62d2d)
-            embed.set_footer(
-                text="This is usually due to staff interruption.")
-            await msg.reply(embed=embed)
-            break  # break out of the loop
-
-        if stats == 'EXPIRED':
-            """Case when the invoice is expired, and the user hasn't been notified yet"""
-            embed = discord.Embed(title=f"Invoice {inv['code']} Expired!",
-                                  description=f"Your invoice with id {inv['id']} of INR {amount} has expired and can no longer be paid. Please make sure to pay within 60 minutes of placing the order.",
-                                  color=0xd62d2d)
-            embed.set_footer(text="You can try again with a new invoice.")
-            await msg.reply(embed=embed)
-            break  # break out of the loop
-
-        if stats == 'UNRESOLVED':
-            """Case when the invoice is in an unresolved state, and the user hasn't been notified yet"""
-            embed = discord.Embed(title=f"Invoice {inv['code']} needs attention!",
-                                  description=f"Your invoice with id {inv['id']} of INR {amount} is in an unresolved state. Please contact us for more information.",
-                                  color=0xd62d2d)
-            embed.set_footer("This may be due to underpayment or overpayment.")
-            await msg.reply(embed=embed)
-            break  # break out of the loop
-
-        # sleep for 10 seconds before checking again
-        await asyncio.sleep(10)
 
 
 @tip.error
 async def tip_error(interaction: discord.Interaction, error):
     """If the user is not in DMs, send them a message to go to DMs."""
     # Embed to send to the user
+    print(error)
     embed = discord.Embed(title="Works in DMs only!",
                           description="Please direct message the bot.",
                           color=0xc6be0f)
@@ -564,20 +526,6 @@ def check_payments(inv):
     return status.upper()  # returns the status in uppercase
 
 
-@tree.command(name="ping", description="Check the bot's latency")
-async def ping(interaction: discord.Interaction):
-    """Command to check the bot's latency"""
-    await interaction.response.send_message(
-        embed=discord.Embed(
-            title="Pong!",
-            description=f"**Latency:** {round(bot.latency * 1000)}ms",
-            color=discord.Color.blurple()
-        )
-    )
-    msg = await interaction.original_response()
-    await msg.add_reaction("🏓")
-
-
 @bot.event
 async def on_message(message: discord.Message):
     """Event handler for messages, detects all messages and responds to ones that satisfy the conditions"""
@@ -587,7 +535,7 @@ async def on_message(message: discord.Message):
     if message.content.lower() == ";;jesse stop" and message.author.id in owners:
         """closes the bot if the message is ;;jesse stop and the author is in the owners list"""
         await message.reply("Okay Mr. White, I'm out!")
-        print ("Bot closed by", message.author)
+        print("Bot closed by", message.author)
         await bot.close()  # closes the bot
     if message.content.lower().startswith(";;del") and ((message.author.id in owners) or (message.guild is None)):
         """deletes messages with ids given after ;;del if the author is in the owners list"""
@@ -604,6 +552,7 @@ async def on_message(message: discord.Message):
                 await message.delete()
             except:
                 pass
+
 
 @tree.command(name="feedback", description="Send feedback to the owner")
 async def feedback(interaction: discord.Interaction):
@@ -637,7 +586,7 @@ async def feedback(interaction: discord.Interaction):
             """When the user submits the feedback"""
             channel = bot.get_channel(feedback_channel)
             embeds = []
-            embeds: typing.List[discord.Embed] # type hinting
+            embeds: typing.List[discord.Embed]  # type hinting
             self.user: discord.User
             user = self.user
             # First embed, contains the user's avatar, name, discriminator and id
@@ -648,14 +597,14 @@ async def feedback(interaction: discord.Interaction):
                 color=Utils.random_hex_color()
             ))
             embeds[0].set_thumbnail(url=user.avatar.url)
-            
+
             # Second embed, contains the feedback title and description
             embeds.append(discord.Embed(
                 title=self.fb_title.value,
                 description=self.content.value,
                 color=embeds[0].color
             ))
-            
+
             # If the user has provided an order id, add it to the footer of the second embed
             if self.order.value != "":
                 embeds[1].set_footer(text=f"Order ID : {self.order.value}")
@@ -676,9 +625,9 @@ async def feedback_error(interaction: discord.Interaction, error):
 
 @tree.command(name="email", description="Add/change the email address associated with your account")
 @app_commands.describe(
-    email = "The email address to be added"
+    email="The email address to be added"
 )
-@app_commands.checks.cooldown(1, 300, key = lambda i: i.user.id)
+@app_commands.checks.cooldown(1, 300, key=lambda i: i.user.id)
 async def verify(interaction: discord.Interaction, email: str):
     """verifies the user's email address"""
     """if the user has a pre-existing email address, it will be replaced with the new one"""
@@ -715,16 +664,30 @@ async def verify(interaction: discord.Interaction, email: str):
     OTPView.email = email
     OTPView.message = await interaction.original_response()
     # Sends the message
-    await interaction.followup.edit_message(msg.id,content=f"Enter the OTP sent to {email}", view=OTPView)
+    await interaction.followup.edit_message(msg.id, content=f"Enter the OTP sent to {email}", view=OTPView)
+
 
 @verify.error
 async def verify_error(interaction: discord.Interaction, error):
     await interaction.response.send_message(str(error), ephemeral=True)
-    
-@tree.command(name="tictactoe", description="plays tictactoe")
-async def tic(ctx: discord.Interaction):
-    """plays tictactoe with the user in a view"""
-    await ctx.response.send_message('Tic Tac Toe: X goes first', view=Fun.TicTacToe())
-    
+
+
+@tree.command(name="bot_info", description="Get basic information about the bot")
+async def bot_info(interaction: discord.Interaction):
+    """Command to check the bot's latency"""
+    embed = discord.Embed(
+        title="Pong!",
+        description=f"**Latency:** {round(bot.latency * 1000)}ms" +
+        f"\n**Guilds:** {len(bot.guilds)}",
+        color=discord.Color.blurple()
+    )
+
+    time = datetime.datetime.timestamp(datetime.datetime.now()) - bot_started
+    await interaction.response.send_message(
+        "Bot is up and running for " + str(Utils.time_to_dhms(time)),
+        embed=embed
+    )
+    msg = await interaction.original_response()
+    await msg.add_reaction("🏓")
 
 bot.run(os.getenv("TOKEN"))

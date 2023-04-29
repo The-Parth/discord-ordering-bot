@@ -33,6 +33,18 @@ class Utils():
             newlist.append(ls[i:i+n])
         return newlist
 
+    def dict_divider(ls: dict, n: int):
+        newlist = []
+        ci = 0
+        for i in ls:
+            if ci % (n) == 0:
+                newlist.append({})
+            newlist[-1][i] = ls[i]
+            ci += 1
+
+        print(newlist)
+        return newlist
+
     def menu_paginate(menu_pages, page) -> discord.Embed:
         embed = discord.Embed(title="Menu",
                               description="The delicious menu of Los Pollos Hermanos",
@@ -150,34 +162,50 @@ class Utils():
         if option is None:
             return [discord.app_commands.Choice(name=i, value=i) for i in options]
         return [discord.app_commands.Choice(name=i, value=i) for i in options if option.lower() in i.lower()]
-    
+
     def order_id_gen(self, user_id):
         """Generates an order ID based on the TIME and USER_ID"""
         user_id = int(user_id)
         from external_modules import Numpy as np
         b36 = np.base_repr(user_id, base=36)
-        year = np.base_repr(int(datetime.datetime.utcnow().year),base=36)
-        time = np.base_repr(int(datetime.datetime.timestamp((datetime.datetime.utcnow())))%100000000, base=36)
+        year = np.base_repr(int(datetime.datetime.utcnow().year), base=36)
+        time = np.base_repr(int(datetime.datetime.timestamp(
+            (datetime.datetime.utcnow()))) % 100000000, base=36)
         order_id = f"{time}_{b36}_{year}"
         return order_id
-        
-        
+
+    def time_to_dhms(time: int):
+        time = int(time)
+        """converts time in seconds to days, hours, minutes and seconds"""
+        days = time//86400
+        hours = (time % 86400)//3600
+        minutes = (time % 3600)//60
+        seconds = time % 60
+        str = ""
+        if days:
+            str += f"{days} days, "
+        if hours:
+            str += f"{hours} hours, "
+        str += f"{minutes} minutes "
+        str += f"and {seconds} seconds."
+        return str
 
     class OTPView(discord.ui.View):
         """View for OTP modal, which displays the Enter button and has a button to retry in case of failure"""
         email = "your mail"
+
         def __init__(self, sent_otp: int, tries_left: int):
             """Initializes the view with the sent OTP and the number of tries left"""
             super().__init__(timeout=600)
             self.sent_otp = sent_otp
             self.tries_left = tries_left
-        
+
         async def on_timeout(self):
             """Disables the view after timeout"""
             try:
                 for child in self.children:
                     child.disabled = True
-                self.message : discord.Message
+                self.message: discord.Message
                 await self.message.edit(view=self)
             except Exception as e:
                 pass
@@ -191,16 +219,17 @@ class Utils():
             modal.sent_otp = self.sent_otp
             modal.email = self.email
             modal.otp.placeholder = f"Enter OTP sent to {self.email}"
-            
+
             # Send the modal
             await interaction.response.send_modal(modal)
 
     class OTPModal(discord.ui.Modal, title="Enter OTP"):
         """Modal to enter OTP, which is sent to the user's email"""
+
         def __init__(self):
             super().__init__(timeout=600)
         email = "your mail"
-        
+
         otp = discord.ui.TextInput(
             style=discord.TextStyle.short,
             required=True,
@@ -214,9 +243,9 @@ class Utils():
         async def on_submit(self, interaction: discord.Interaction):
             self.tries_left -= 1
             if self.otp.value.upper() == self.sent_otp:
-                    from wallet import Actions
-                    Actions().add_email(interaction.user.id, self.email)
-                    await interaction.response.edit_message(content=f"Email Verified! The email **{self.email}** is now associated with your account!",view=None)
+                from wallet import Actions
+                Actions().add_email(interaction.user.id, self.email)
+                await interaction.response.edit_message(content=f"Email Verified! The email **{self.email}** is now associated with your account!", view=None)
             else:
                 if self.tries_left == 0:
                     await interaction.response.edit_message(content="Out of Tries. Please try sending a new OTP.", view=None)
@@ -226,107 +255,6 @@ class Utils():
                     OTPView.message = interaction.original_response()
                     await interaction.response.edit_message(content=f"Invalid OTP, You have {self.tries_left} tries left", view=OTPView)
 
+
 class Orders():
     pass
-
-
-class Fun():
-    class TicTacToeButton(discord.ui.Button['TicTacToe']):
-        def __init__(self, x: int, y: int):
-            super().__init__(style=discord.ButtonStyle.secondary, label='\u200b', row=y)
-            self.x = x
-            self.y = y
-
-        async def callback(self, interaction: discord.Interaction):
-            view = self.view
-            state = view.board[self.y][self.x]
-            if state in (view.X, view.O):
-                return
-
-            if view.current_player == view.X:
-                self.style = discord.ButtonStyle.danger
-                self.label = 'X'
-                self.disabled = True
-                view.board[self.y][self.x] = view.X
-                view.current_player = view.O
-                content = "It is now O's turn"
-            else:
-                self.style = discord.ButtonStyle.success
-                self.label = 'O'
-                self.disabled = True
-                view.board[self.y][self.x] = view.O
-                view.current_player = view.X
-                content = "It is now X's turn"
-
-            winner = view.check_board_winner()
-            if winner is not None:
-                if winner == view.X:
-                    content = 'X won!'
-                elif winner == view.O:
-                    content = 'O won!'
-                else:
-                    content = "It's a tie!"
-
-                for child in view.children:
-                    child.disabled = True
-
-                view.stop()
-
-            await interaction.response.edit_message(content=content, view=view)
-
-    # This is our actual board View
-
-    class TicTacToe(discord.ui.View):
-        X = -1
-        O = 1
-        Tie = 2
-
-        def __init__(self):
-            super().__init__()
-            self.current_player = self.X
-            self.board = [
-                [0, 0, 0],
-                [0, 0, 0],
-                [0, 0, 0],
-            ]
-
-            for x in range(3):
-                for y in range(3):
-                    self.add_item(Fun.TicTacToeButton(x, y))
-
-        # This method checks for the board winner -- it is used by the TicTacToeButton
-        def check_board_winner(self):
-            for across in self.board:
-                value = sum(across)
-                if value == 3:
-                    return self.O
-                elif value == -3:
-                    return self.X
-
-            # Check vertical
-            for line in range(3):
-                value = self.board[0][line] + \
-                    self.board[1][line] + self.board[2][line]
-                if value == 3:
-                    return self.O
-                elif value == -3:
-                    return self.X
-
-            # Check diagonals
-            diag = self.board[0][2] + self.board[1][1] + self.board[2][0]
-            if diag == 3:
-                return self.O
-            elif diag == -3:
-                return self.X
-
-            diag = self.board[0][0] + self.board[1][1] + self.board[2][2]
-            if diag == 3:
-                return self.O
-            elif diag == -3:
-                return self.X
-
-            # If we're here, we need to check if a tie was made
-            if all(i != 0 for row in self.board for i in row):
-                return self.Tie
-
-            return None
