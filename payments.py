@@ -80,14 +80,42 @@ class Payment:
 
         # Get transaction status
         status = response.json()["data"]["status"]
-        print("\nTransaction status: ", status)
         return status
     
-    def check_payments(inv):
+    def void_payment(invoice_id: str):
+        # Invoice VOID Endpoint
+        url = 'https://api.commerce.coinbase.com/invoices/' + invoice_id + '/void'
+
+        # Headers required by Coinbase Commerce API
+        headers = {
+            'X-CC-Api-Key': API_KEY,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CC-Version': '2018-03-22'
+        }
+        status = Payment.check_payments(invoice_id, True)
+        if status == "PAID":
+            return "Invoice already paid"
+        elif status == "PAYMENT_PENDING":
+            return "Invoice payment pending"
+        elif status == "EXPIRED":
+            return "Invoice already expired"
+        elif status == "UNRESOLVED":
+            return "Invoice unresolved"
+        elif status ==  "VOID":
+            return "Invoice already void"
+        else:
+            requests.put(url, headers=headers)
+            if Payment.check_payments(invoice_id, True) == "VOID":
+                return "Invoice voided successfully"
+            else:
+                return "Invoice void failed"
+    
+    def check_payments(inv, id_pass = False):
         """checks the status of the invoice by calling the check method of the Payment class"""
         from payments import Payment
         # calls the check method of the Payment class
-        status = Payment.check(inv['id'])
+        if not id_pass:
+            inv = inv['id']
+        status = Payment.check(inv)
         return status.upper()  # returns the status in uppercase
-
-

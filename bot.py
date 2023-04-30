@@ -49,7 +49,8 @@ async def on_ready():
     except Exception as e:
         print(e)
         pass
-    await tree.sync()
+
+    print("Tree synced!")
     # Starts the status task forever
     while await status_task():
         continue
@@ -77,10 +78,11 @@ async def help(interaction: discord.Interaction, command: str = None):
 @tree.command(name="place_order", description="Confirm and place your order! (DMs only)")
 @Checkers.is_dm()
 @app_commands.describe(
-    email="Your email address to which the invoice must be sent!"
+    instructions= "Special instructions for the order",
 )
-async def place_order(interaction: discord.Interaction, email: str):
+async def place_order(interaction: discord.Interaction, instructions: str = None):
     """Places the order"""
+    from wallet import Actions
     filepath = os.path.dirname(os.path.abspath(
         __file__)) + "\data\carts\{0}.json".format(interaction.user.id)
     # Makes it fit your OS
@@ -93,12 +95,10 @@ async def place_order(interaction: discord.Interaction, email: str):
     # Opens the cart
     cart = json.load(open(filepath, "r"))
 
-    import re
-    if (re.fullmatch(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b', email)):
-        pass
-    else:
-        # Error message if email is invalid
-        await interaction.response.send_message("Invalid email address!", ephemeral=True)
+    email = Actions().get_email(interaction.user.id)
+    if email is None:
+        await interaction.response.send_message("You need to set your email first! Use `/wallet set_email <email>`",
+                                                ephemeral=True)
         return
 
     # If the cart is empty, sends an ephemeral message
@@ -113,7 +113,6 @@ async def place_order(interaction: discord.Interaction, email: str):
         @discord.ui.button(label="Confirm", style=discord.ButtonStyle.green)
         async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
             """Confirms the order"""
-            order_channel = bot.get_channel(order_channel)
             # Checks if the cart is empty
             if cart == {}:
                 embed = discord.Embed(title="Your Cart is Empty",
@@ -121,7 +120,7 @@ async def place_order(interaction: discord.Interaction, email: str):
                                       color=0x57eac8)
                 embed.set_footer(text="If you need help, use /help")
 
-                await order_channel.send(embed=embed)
+                await interaction.response.send_message(embed=embed, ephemeral=True)
                 return
             else:
                 """Now that we know the cart isn't empty, we can start formatting the menu string"""
@@ -131,6 +130,13 @@ async def place_order(interaction: discord.Interaction, email: str):
                 item_count = 0
                 total_items = 0
                 f = cart
+                amount = Utils.get_cart_total(cart)
+                if amount == 0:
+                    await interaction.response.edit_message("We do not accept orders for free items only!")
+                    json.dump(json.load(open(limbo_path, "r")),
+                            open(filepath, "w"), indent=2)
+                    os.remove(limbo_path)
+                    return
                 # Formats the menu string in the format of "Item(Price) x Quantity..........Total"
                 for item in f:
                     # Adds the item to the menu string
@@ -169,7 +175,7 @@ async def place_order(interaction: discord.Interaction, email: str):
                 embeds[-1].description += "**Email:** {0}\n".format(email)
                 embeds[-1].timestamp = datetime.datetime.now()
                 embeds[-1].description += "\n**Total: ₹{0}**".format(
-                    Utils.get_cart_total(f))
+                    amount)
             timestamp_of_order = int(datetime.datetime.utcnow().timestamp())
             limbo_path = os.path.dirname(os.path.abspath(
                 __file__)) + "\data\carts\limbo\{0}".format(
@@ -179,127 +185,40 @@ async def place_order(interaction: discord.Interaction, email: str):
             limbo_path = Utils.path_finder(limbo_path)
             json.dump(cart, open(limbo_path, "w"), indent=2)
             os.remove(filepath)
-            int_channel = interaction.channel
-            from payments import Payment
-            amount = Utils.get_cart_total(cart)/100
-            memo = str(interaction.user.id) + \
-                f": Order from {str(interaction.user)} of INR {amount} at {timestamp_of_order}"
-            # Create the invoice using the Coinbase Commerce API in payments.py
-            inv: dict
-            if amount == 0:
-                await interaction.response.send_message("We do not accept orders for free items only!", ephemeral=True)
-                return
-            try:
-                inv = Payment.invoice(str(interaction.user),
-                                      email, amount, "INR", memo)
-            except Exception as e:
-                await interaction.response.send_message("Error creating invoice, please try again later!", ephemeral=True)
+            balance = Actions().get_wallet(
+                interaction.user.id)["data"]["balance"]
+            if balance < amount:
+                embed = discord.Embed(title="Insufficient Balance!",
+                                      description="You don't have enough balance to place this order!")
+                embed.add_field(name="Your Balance", value="₹{0}".format(balance), inline=False)
+                embed.add_field(name="Order Total", value="₹{0}".format(amount), inline=False)
                 json.dump(json.load(open(limbo_path, "r")),
-                          open(filepath, "w"), indent=2)
+                            open(filepath, "w"), indent=2)
                 os.remove(limbo_path)
+                await interaction.response.edit_message(embed=embed, view=None)
+                
                 return
-
-            # Make an invoice with a button to pay the invoice
-            embed = discord.Embed(title=f"Invoice {inv['code']} created!",
-                                  description=f"Payment link : {inv['url']}",
-                                  color=0xc6be0f)
-            embed.add_field(name="Amount", value=f"INR {amount}", inline=True)
-            embed.add_field(name="Order Code", value=inv['code'], inline=True)
-            embed.add_field(name="Tx. ID", value=str(inv['id']), inline=True)
-            view = discord.ui.View()
-            view.add_item(item=discord.ui.Button(
-                label="Make Payment", url=inv['url']))
-
-            # Send the invoice to the user
-            await interaction.response.edit_message(embed=embed, view=view)
-            msg = await interaction.original_response()
-            count = 0
-            flag_check_coming = False
-            while True:
-                """Checks if the invoice has been paid every 10 seconds"""
-                stats = check_payments(inv)
-                count += 1
-                print(f"{count}. Payment Stats for {inv['code']} = {stats}")
-
-                # check status every 10 seconds
-                if stats == 'PAYMENT_PENDING' and flag_check_coming == False:
-                    """Case when the payment is marked as pending, and the user hasn't been notified yet"""
-                    flag_check_coming = True
-                    embed = discord.Embed(title=f"Payment for Invoice {inv['code']} Pending!",
-                                          description=f"Check status here : {inv['url']}",
-                                          color=0x3f7de0)
-                    embed.set_footer(
-                        text="We will notify you when the payment is complete.")
-                    await msg.reply(embed=embed)
-
-                if stats == 'PAID':
-                    """Case when the payment is complete, and the user hasn't been notified yet"""
-                    embed = discord.Embed(title=f"Invoice {inv['code']} Paid Successfully!",
-                                          description=f"View Charge : {inv['url']}",
-                                          color=0x20e364)
-                    embed.add_field(
-                        name="Amount", value=f"INR {amount}", inline=True)
-                    embed.add_field(name="Order Code",
-                                    value=inv['code'], inline=True)
-                    embed.add_field(name="Tx. ID", value=str(
-                        inv['id']), inline=True)
-                    embed.set_footer(
-                        text="Thank you for shopping with us! See you soon!")
-                    view = discord.ui.View()
-                    view.add_item(item=discord.ui.Button(
-                        label="View Charge", url=inv['url']))
-                    await msg.reply(embed=embed, view=view)
-                    await order_channel.send(embeds=embeds)
-                    await int_channel.send(embed=discord.Embed(
-                        title="Order Placed!",
-                        description=f"Your order has been placed successfully!",
-                        color=0x20e364)
-                    )
-
-                    break  # break out of the loop
-
-                if stats == 'VOID':
-                    """Case when the invoice is voided, and the user hasn't been notified yet"""
-                    embed = discord.Embed(title=f"Invoice {inv['code']} Voided!",
-                                          description=f"Your invoice with id {inv['id']} of INR {amount} has been voided and can no longer be paid.",
-                                          color=0xd62d2d)
-                    embed.set_footer(
-                        text="This is usually due to staff interruption.")
-                    await msg.reply(embed=embed)
-                    json.dump(json.load(open(limbo_path, "r")),
-                              open(filepath, "w"), indent=2)
-                    break  # break out of the loop
-
-                if stats == 'EXPIRED':
-                    """Case when the invoice is expired, and the user hasn't been notified yet"""
-                    embed = discord.Embed(title=f"Invoice {inv['code']} Expired!",
-                                          description=f"Your invoice with id {inv['id']} of INR {amount} has expired and can no" +
-                                          "longer be paid. Please make sure to pay within 60 minutes of placing the order.",
-                                          color=0xd62d2d)
-                    embed.set_footer(
-                        text="You can try again with a new invoice.")
-                    await msg.reply(embed=embed)
-                    json.dump(json.load(open(limbo_path, "r")),
-                              open(filepath, "w"), indent=2)
-                    break  # break out of the loop
-
-                if stats == 'UNRESOLVED':
-                    """Case when the invoice is in an unresolved state, and the user hasn't been notified yet"""
-                    embed = discord.Embed(title=f"Invoice {inv['code']} needs attention!",
-                                          description=f"Your invoice with id {inv['id']} of INR {amount} is in an unresolved state. Please contact us for more information.",
-                                          color=0xd62d2d)
-                    embed.set_footer(
-                        "This may be due to underpayment or overpayment.")
-                    json.dump(json.load(open(limbo_path, "r")),
-                              open(filepath, "w"), indent=2)
-                    await msg.reply(embed=embed)
-                    break  # break out of the loop
-
-                # sleep for 10 seconds before checking again
-                await asyncio.sleep(10)
-
-            # Sends a message in the channel
+            channel = await bot.fetch_channel(os.getenv("ORDER_CHANNEL"))
+            order_id = Utils.order_id_gen(interaction.user.id)+"_O"
+            try:
+                Actions().remove_balance(interaction.user.id, amount)
+                Actions().add_order(interaction.user.id, order_id, amount, f, "Confirmed", instructions)
+            except Exception as e:
+                if str(e) == "I see shenanigans":
+                    await interaction.response.edit_message(content="Don't try to cheat the system!", embed=None, view=None)
+                else:
+                    await interaction.response.edit_message(content="Something went wrong, please try again later!", embed=None, view=None)
+                Actions().add_order(interaction.user.id, order_id, amount, f, "Cancelled", instructions)
+            order_id = Utils.order_id_gen(interaction.user.id)+"_O"
+            embeds[-1].description += "\n**Order ID:** {0}".format(order_id)
+            await channel.send("Order for {0}".format(interaction.user.name), embeds=embeds)
+            embed = discord.Embed(title="Order placed!",
+                                  description="Please wait for a staff member to process your order!",
+                                  timestamp=datetime.datetime.now(),
+                                  color=0x05f569)
+            embed.set_footer(text="Order ID: {0}".format(order_id))
             os.remove(limbo_path)
+            await interaction.response.edit_message(embed=embed, view=None)
 
         @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
         async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -311,10 +230,13 @@ async def place_order(interaction: discord.Interaction, email: str):
             await interaction.response.edit_message(embed=embed, view=None)
 
     # Creates the embed
+    amount = Utils.get_cart_total(cart)
     embed = discord.Embed(title="Confirm your order",
-                          description="Please confirm your order by clicking the button below.\nThis will clear your cart.",
+                          description="Please confirm your order by clicking the button below.\nThis will clear your cart." ,
                           color=0x05f569)
     embed.set_footer(text="Check your cart before confirming!")
+    embed.add_field(name="Total", value="₹{0}".format(amount), inline=False)
+    embed.add_field(name = "Your Balance", value = "₹{0}".format(Actions().get_wallet(interaction.user.id)["data"]["balance"]), inline=False)
     po_view = PlaceOrderView()
     await interaction.response.send_message(embed=embed, view=po_view)
 
@@ -347,6 +269,7 @@ async def tip(interaction: discord.Interaction,
     """To be used in DMs only, and real money is involved, so be careful"""
     class TipView(discord.ui.View):
         color = None
+
         def __init__(self):
             super().__init__(timeout=120)
             self.value = None
@@ -386,26 +309,26 @@ async def tip(interaction: discord.Interaction,
                 channel = bot.get_channel(feedback_channel)
                 fe = discord.Embed(
                     title="New Tip from {0}#{1}".format(
-                    interaction.user.name, interaction.user.discriminator),
-                    description = f"**Amount:** ₹ {amount}\n",
+                        interaction.user.name, interaction.user.discriminator),
+                    description=f"**Amount:** ₹ {amount}\n",
                     timestamp=datetime.datetime.now(),
-                    color = self.color
+                    color=self.color
                 )
                 fe.set_footer(text="User ID: {0}".format(interaction.user.id))
                 await channel.send(embed=fe)
-                                   
+
                 return
 
         @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
         async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
             embed = discord.Embed(title="Tip cancelled!",
                                   description="Your tip has been cancelled!",
-                                  color= self.color)
+                                  color=self.color)
             await interaction.response.edit_message(embed=embed, view=None)
-            
+
     embed = discord.Embed(title="Confirm your tip",
                           description=f"Please confirm your tip of **₹ {amount}** by clicking the **Confirm** button below.",
-                          color= Utils.random_hex_color())
+                          color=Utils.random_hex_color())
     embed.set_footer(text="This will be deducted from your wallet balance.")
     view = TipView()
     view.color = embed.color
@@ -537,6 +460,13 @@ async def on_message(message: discord.Message):
         await message.reply("Okay Mr. White, I'm out!")
         print("Bot closed by", message.author)
         await bot.close()  # closes the bot
+
+    if message.content.lower() == ";;jesse restart" and message.author.id in owners:
+        await message.reply("Okay Mr. White, I'm restarting!")
+        import sys
+        print("Bot restarted by", message.author)
+        os.execv(sys.executable, ['python'] + sys.argv)
+
     if message.content.lower().startswith(";;del") and ((message.author.id in owners) or (message.guild is None)):
         """deletes messages with ids given after ;;del if the author is in the owners list"""
         ls = message.content.split()  # splits the message into a list, getting all the ids

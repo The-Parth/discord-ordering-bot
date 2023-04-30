@@ -163,15 +163,15 @@ class Utils():
             return [discord.app_commands.Choice(name=i, value=i) for i in options]
         return [discord.app_commands.Choice(name=i, value=i) for i in options if option.lower() in i.lower()]
 
-    def order_id_gen(self, user_id):
+    def order_id_gen(user_id):
         """Generates an order ID based on the TIME and USER_ID"""
         user_id = int(user_id)
         from external_modules import Numpy as np
         b36 = np.base_repr(user_id, base=36)
         year = np.base_repr(int(datetime.datetime.utcnow().year), base=36)
         time = np.base_repr(int(datetime.datetime.timestamp(
-            (datetime.datetime.utcnow()))) % 100000000, base=36)
-        order_id = f"{time}_{b36}_{year}"
+            (datetime.datetime.utcnow()))), base=36)
+        order_id = f"{time}_{b36}"
         return order_id
 
     def time_to_dhms(time: int):
