@@ -35,6 +35,7 @@ async def on_ready():
     try:
         from carts import CartActions
         from wallet import WalletActions
+        from transactions import Transactions
         # Creates the slash command tree
         cart = CartActions(bot)
         # Adds the cart command group to the tree
@@ -43,6 +44,10 @@ async def on_ready():
         wallet = WalletActions(bot)
         # Adds the wallet command group to the tree
         tree.add_command(wallet)
+        # Creates the transactions command group
+        transactions = Transactions(bot)
+        # Adds the transactions command group to the tree
+        tree.add_command(transactions)
 
         # Syncs the tree globally
         await tree.sync()
@@ -176,6 +181,8 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
                 embeds[-1].timestamp = datetime.datetime.now()
                 embeds[-1].description += "\n**Total: ₹{0}**".format(
                     amount)
+                embeds[-1].description += "\n**Instructions:** {0}".format(
+                    instructions)
             timestamp_of_order = int(datetime.datetime.utcnow().timestamp())
             limbo_path = os.path.dirname(os.path.abspath(
                 __file__)) + "\data\carts\limbo\{0}".format(
@@ -216,9 +223,11 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
                                   description="Please wait for a staff member to process your order!",
                                   timestamp=datetime.datetime.now(),
                                   color=0x05f569)
+            embed.description += "\n**New Balance:** ₹{0}".format(round(balance-amount ,2))
             embed.set_footer(text="Order ID: {0}".format(order_id))
             os.remove(limbo_path)
             await interaction.response.edit_message(embed=embed, view=None)
+            await interaction.followup.send(embeds=embeds)
 
         @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
         async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -264,19 +273,20 @@ async def place_order_error(interaction: discord.Interaction, error):
     amount="The amount you want to tip us! We accept payments in INR",
 )
 async def tip(interaction: discord.Interaction,
-              amount: app_commands.Range[int, 1, None]):
+              amount: app_commands.Range[float, 1, None]):
     """Function to send tips to the restaurant (bot owner) using invoices (powered by Coinbase Commerce)"""
     """To be used in DMs only, and real money is involved, so be careful"""
     class TipView(discord.ui.View):
         color = None
 
         def __init__(self):
-            super().__init__(timeout=120)
+            super().__init__(timeout=10)
             self.value = None
 
         async def on_timeout(self):
             for child in self.children:
                 child.disabled = True
+            await self.message.edit(view=self)
 
         @discord.ui.button(label="Confirm", style=discord.ButtonStyle.green)
         async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -333,6 +343,7 @@ async def tip(interaction: discord.Interaction,
     view = TipView()
     view.color = embed.color
     await interaction.response.send_message(embed=embed, view=view)
+    view.message = await interaction.original_response()
 
 
 @tip.error
@@ -461,6 +472,17 @@ async def on_message(message: discord.Message):
         print("Bot closed by", message.author)
         await bot.close()  # closes the bot
 
+    if message.content.lower().startswith(";;void") and ((message.author.id in owners)):
+        ls = message.content.split()
+        for i in ls[1:]:
+            try:
+                from payments import Payment
+                temp_s = Payment.void_payment(i)
+                await message.reply(f"{i} : {temp_s}")
+            except:
+                await message.reply("Error in **{0}**".format(i))
+                pass
+    
     if message.content.lower() == ";;jesse restart" and message.author.id in owners:
         await message.reply("Okay Mr. White, I'm restarting!")
         import sys

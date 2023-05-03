@@ -302,7 +302,7 @@ class CartActions(app_commands.Group):
             ])
             async def select_item(self, interaction: discord.Interaction, select: discord.ui.Select):
                 """Select menu, selects an item"""
-                print(interaction.user.id)
+                #print(interaction.user.id)
                 if not (Checkers.is_dm_2(interaction)):
                     if (interaction.user.id is not self.og_author):
                         # Checks if the user is the original author of the message
@@ -398,7 +398,7 @@ class CartActions(app_commands.Group):
         builder_view.og_author = interaction.user.id
 
         # Debugging purposes
-        print(builder_view.og_author)
+        #print(builder_view.og_author)
 
     @build.error
     async def build_error(self, interaction: discord.Interaction, error):

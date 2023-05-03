@@ -49,6 +49,7 @@ class Actions:
         wallet = self.get_wallet(user_id)
         # Adds the amount to the balance
         wallet["data"]["balance"] += amount  # adds the amount to the balance
+        wallet["data"]["balance"] = round(wallet["data"]["balance"], 2)
         # Saves it in the users data
         json.dump(wallet["data"], open(wallet["filepath"], "w"), indent=4)
 
@@ -59,6 +60,7 @@ class Actions:
         wallet = self.get_wallet(user_id)
         # Spends the amount from the balance
         wallet["data"]["balance"] -= amount
+        wallet["data"]["balance"] = round(wallet["data"]["balance"], 2)
         # Error if the balance is less than 0
         if wallet["data"]["balance"] < 0:
             raise TooMuchSpent("I see shenanigans")
@@ -91,7 +93,7 @@ class Actions:
         # Adds the order to the transactions
         transactions["data"]["orders"][order_id] = {
             "amount": amount,
-            "status" : status,
+            "status": status,
             "cart": cart,
         }
         # Adds the instructions if there are any
@@ -113,13 +115,6 @@ class Actions:
         # Saves the transactions
         json.dump(transactions["data"], open(
             transactions["filepath"], "w"), indent=4)
-
-    def transaction_paginate(self, user_id, type: str, page):
-        type = type.lower()
-        if type != "orders" and type != "reloads":
-            raise Exception("Transaction type must be orders or reloads")
-        transactions = self.get_transactions(user_id)["data"][type]
-        Utils.list_divider(transactions, 5)
 
 
 class WalletActions(app_commands.Group):
@@ -163,16 +158,7 @@ class WalletActions(app_commands.Group):
         # Sends the embed
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="transactions", description="View your transactions")
-    @app_commands.describe(type="The type of transactions you want to view")
-    @app_commands.choices(type=[
-        app_commands.Choice(name="orders", value="orders"),
-        app_commands.Choice(name="reloads", value="reloads")]
-    )
-    async def view_transactions(self, interaction: discord.Interaction, type: str):
-        await interaction.response.send_message("This command is not yet implemented, you chose {0}".format(type))
-
-    @app_commands.command(name="reload", description="Recharge your wallet")
+    @app_commands.command(name="recharge", description="Recharge your wallet")
     @app_commands.describe(
         amount="The amount you want to recharge your wallet with in INR"
     )
@@ -183,6 +169,7 @@ class WalletActions(app_commands.Group):
             await interaction.response.send_message("You need to set your email before you can recharge your wallet. Use `/email <email>` to set your email")
             return
         await interaction.response.send_message("Okay, generating an invoice...")
+        msg = await interaction.original_response()
         from payments import Payment
         # Generate a unique memo for the invoice using the user's name and the amount
         order_id = str(Utils.order_id_gen(interaction.user.id))+"_R"
@@ -207,7 +194,8 @@ class WalletActions(app_commands.Group):
             label="Make Payment", url=inv['url']))
 
         # Send the invoice to the user
-        await interaction.followup.send(embed=embed, view=view)
+        await interaction.followup.edit_message(message_id=msg.id, content=None, embed=embed, view=view)
+        # await interaction.followup.send(embed=embed, view=view)
         count = 0
         flag_check_coming = False
         while True:
@@ -294,7 +282,7 @@ class WalletActions(app_commands.Group):
                     "This may be due to underpayment or overpayment.")
                 await interaction.followup.send(embed=embed)
                 break  # break out of the loop
-            
+
             if count == 30 and (stats == 'VIEWED' or stats == 'OPEN'):
                 Payment.void_payment(inv['code'])
 
@@ -326,7 +314,7 @@ class WalletActions(app_commands.Group):
         else:
             await interaction.response.send_message("An unknown error occured, please try again later.")
             print(error)
-            
+
     @app_commands.command(name="refresh", description="Refreshes all unpaid invoices. Also cancels any unpaid invoices")
     @app_commands.checks.cooldown(1, 3600, key=lambda i: (i.guild, i.user.id))
     async def refresh_invoices(self, interaction: discord.Interaction):
@@ -334,28 +322,32 @@ class WalletActions(app_commands.Group):
         # Get the user's invoices
         from payments import Payment
         await interaction.response.send_message("Refreshing your invoices...")
-        transactions_obj = self.action_object.get_transactions(interaction.user.id)
+        transactions_obj = self.action_object.get_transactions(
+            interaction.user.id)
         transactions = transactions_obj["data"]
         for t in transactions["reloads"]:
             i = transactions["reloads"][t]
             stat = i["status"]
-            if stat == "PAID":
+            if stat == "PAID" or stat == "VOID":
                 continue
             else:
                 new_stat = Payment.check_payments(i['invoice'], id_pass=True)
                 if new_stat == "PAID":
                     transactions["reloads"][t]["status"] = "PAID"
-                    self.action_object.add_balance(interaction.user.id, i["amount"])
+                    self.action_object.add_balance(
+                        interaction.user.id, i["amount"])
                     await interaction.followup.send(f"Invoice {i['invoice']}: Your wallet has been recharged with INR {i['amount']}")
-                elif new_stat == "OPEN" or new_stat == "PAYMENT_PENDING":
+                elif new_stat == "OPEN" or new_stat == "VIEWED":
                     Payment.void_payment(i['invoice'])
                     await interaction.followup.send(f"Invoice {i['invoice']}: Your invoice has been voided.")
+                    transactions["reloads"][t]["status"] = "VOID"
                 elif new_stat != stat:
                     transactions["reloads"][t]["status"] = new_stat
                     await interaction.followup.send(f"Invoice {i['invoice']}: Your invoice status is {new_stat}")
                 else:
                     continue
-        json.dump(transactions, open(transactions_obj["filepath"], "w"), indent=4)
+        json.dump(transactions, open(
+            transactions_obj["filepath"], "w"), indent=4)
         await interaction.followup.send("Your invoices have been refreshed.")
 
     @refresh_invoices.error

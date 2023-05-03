@@ -33,18 +33,6 @@ class Utils():
             newlist.append(ls[i:i+n])
         return newlist
 
-    def dict_divider(ls: dict, n: int):
-        newlist = []
-        ci = 0
-        for i in ls:
-            if ci % (n) == 0:
-                newlist.append({})
-            newlist[-1][i] = ls[i]
-            ci += 1
-
-        print(newlist)
-        return newlist
-
     def menu_paginate(menu_pages, page) -> discord.Embed:
         embed = discord.Embed(title="Menu",
                               description="The delicious menu of Los Pollos Hermanos",
@@ -168,7 +156,6 @@ class Utils():
         user_id = int(user_id)
         from external_modules import Numpy as np
         b36 = np.base_repr(user_id, base=36)
-        year = np.base_repr(int(datetime.datetime.utcnow().year), base=36)
         time = np.base_repr(int(datetime.datetime.timestamp(
             (datetime.datetime.utcnow()))), base=36)
         order_id = f"{time}_{b36}"
@@ -228,6 +215,7 @@ class Utils():
 
         def __init__(self):
             super().__init__(timeout=600)
+            
         email = "your mail"
 
         otp = discord.ui.TextInput(
