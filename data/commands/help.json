@@ -3,17 +3,21 @@
     "desc": "Shows this help message, or help for a specific command.",
     "usage": "help [command]"
   },
-  "cart clear": {
-    "desc": "Removes all items in your current cart for a fresh start.",
-    "usage": "cart clear"
+  "menu": {
+    "desc": "Shows the menu for the restaurant.",
+    "usage": "menu [page]"
+  },
+  "cart view": {
+    "desc": "Shows you all the items in your current cart.",
+    "usage": "cart view"
   },
   "cart build": {
     "desc": "Helps you build your cart using the menu.\n\nTo add an item, select the item from the dropdown menu and click the `Add Item` button.\n\nTo remove an item, select the item from the dropdown menu and click the `Remove Item` button.\nPress `Next` to see the next page of the menu and `Previous` to see the previous page of the menu.",
     "usage": "cart build [page]"
   },
-  "cart view": {
-    "desc": "Shows you all the items in your current cart.",
-    "usage": "cart view"
+  "cart clear": {
+    "desc": "Removes all items in your current cart for a fresh start.",
+    "usage": "cart clear"
   },
   "place_order": {
     "desc": "Places your order and sends it to the restaurant.\n\nYou will be prompted to confirm your order before it is sent and after confirmation, you will be given an invoice to pay for your order. \n\nOnce you have paid, your order will be sent to the restaurant",
@@ -23,12 +27,40 @@
     "desc": "Sends a tip to the restaurant.",
     "usage": "tip <email> <amount>"
   },
-  "tictactoe": {
-    "desc": "Play a game of Tic Tac Toe",
-    "usage": "tictactoe"
+  "email": {
+    "desc": "Add/Update your email address.\nAn OTP will be sent to your email address to verify it.",
+    "usage": "email <email>"
   },
-  "menu": {
-    "desc": "Shows the menu for the restaurant.",
-    "usage": "menu [page]"
+  "feedback": {
+    "desc": "Send feedback to the restaurant.\n\nYou will be prompted to enter your feedback after which it will be sent to the restaurant.",
+    "usage": "feedback"
+  },
+  "wallet view": {
+    "desc": "Shows you your current wallet balance.",
+    "usage": "wallet view"
+  },
+  "wallet refresh": {
+    "desc": "Refreshes your wallet transactions. Use if some transactions are not updated.\n\n**PLEASE USE THIS COMMAND WITH CAUTION AS IT WILL REFRESH ALL YOUR TRANSACTIONS AND VOID ALL UNPAID INVOICES**",
+    "usage": "wallet refresh"
+  },
+  "recharge fiat": {
+    "desc": "Recharge your wallet using fiat currency. You will be given a Payment link to pay for your recharge.\n\nOnce you have paid, your wallet will be recharged. Payments are processed by Razorpay.\nLinks are valid for 60 minutes.",
+    "usage": "recharge fiat <amount>"
+  },
+  "recharge crypto": {
+    "desc": "Recharge your wallet using crypto currency. You will be given a Payment link to pay for your recharge.\n\nOnce you have paid, your wallet will be recharged. Payments are processed by Coinbase Commerce.\nLinks are valid for 60 minutes.",
+    "usage": "recharge crypto <amount>"
+  },
+  "transactions recharge": {
+    "desc": "Shows you all your recharge transactions, if no ID is specified. If an ID is specified, it will show you the details of that transaction.\n\nYou can also specify a page number to view a specific page of transactions.\nWhen all transactions are shown, you can use the `Next` and `Previous` buttons to navigate between pages. The dropdown menu can be used to view a transaction in detail.",
+    "usage": "transactions recharge [id] [page]"
+  },
+  "transactions orders": {
+    "desc": "Shows all your order transactions, if no ID is specified. If an ID is specified, it will show you the details of that transaction.\n\nYou can also specify a page number to view a specific page of transactions.\nWhen all transactions are shown, you can use the `Next` and `Previous` buttons to navigate between pages. The dropdown menu can be used to view a transaction in detail.",
+    "usage": "transactions orders [id] [page]"
+  },
+  "bot_info": {
+    "desc": "Shows you information about the bot.",
+    "usage": "bot_info"
   }
 }

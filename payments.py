@@ -82,7 +82,7 @@ class Payment:
         status = response.json()["data"]["status"]
         return status
     
-    def void_payment(invoice_id: str):
+    def void_payment(invoice_id: str, id_pass = False):
         # Invoice VOID Endpoint
         url = 'https://api.commerce.coinbase.com/invoices/' + invoice_id + '/void'
 

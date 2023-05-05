@@ -14,7 +14,6 @@ load_dotenv()
 # Creates a mailer object
 mailobj: Mailer = Mailer()
 
-
 intents = discord.Intents.all()
 bot = discord.AutoShardedClient(intents=intents)
 tree = discord.app_commands.CommandTree(bot)
@@ -36,6 +35,7 @@ async def on_ready():
         from carts import CartActions
         from wallet import WalletActions
         from transactions import Transactions
+        from recharge import Recharge
         # Creates the slash command tree
         cart = CartActions(bot)
         # Adds the cart command group to the tree
@@ -48,6 +48,10 @@ async def on_ready():
         transactions = Transactions(bot)
         # Adds the transactions command group to the tree
         tree.add_command(transactions)
+        # Creates the recharge command group
+        recharge = Recharge(bot)
+        # Adds the recharge command group to the tree
+        tree.add_command(recharge)
 
         # Syncs the tree globally
         await tree.sync()
@@ -102,7 +106,7 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
 
     email = Actions().get_email(interaction.user.id)
     if email is None:
-        await interaction.response.send_message("You need to set your email first! Use `/wallet set_email <email>`",
+        await interaction.response.send_message("You need to set your email first! Use `/email <email>`",
                                                 ephemeral=True)
         return
 
@@ -183,6 +187,8 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
                     amount)
                 embeds[-1].description += "\n**Instructions:** {0}".format(
                     instructions)
+                if interaction.user.avatar is not None:
+                    embeds[-1].set_thumbnail(url=interaction.user.avatar.url)
             timestamp_of_order = int(datetime.datetime.utcnow().timestamp())
             limbo_path = os.path.dirname(os.path.abspath(
                 __file__)) + "\data\carts\limbo\{0}".format(
@@ -252,19 +258,30 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
 
 @place_order.error
 async def place_order_error(interaction: discord.Interaction, error):
-    """ Custom error handler for the place_order command."""
-    # Embed to send in the response
-    embed = discord.Embed(title="Works in DMs only!",
-                          description="Please direct message the bot.",
-                          color=0xc6be0f)
-
-    # Create a view with a button that links to the DM channel
-    view = discord.ui.View()
+    """If the user is not in DMs, send them a message to go to DMs."""
+    # Embed to send to the user
     dm = await interaction.user.create_dm()
-    view.add_item(item=discord.ui.Button(label="Go to DMs", url=dm.jump_url))
+    try:
+        msg = await dm.send("Use the command in DMs only.")
+    except:
+        pass
+    if isinstance(error, app_commands.CheckFailure):
+        embed = discord.Embed(title="Works in DMs only!",
+                                description="Please direct message the bot.",
+                                color=0xc6be0f)
+        embed.set_footer(
+            text="If this was in DMs, an inadvertent error occured.")
+        # View to send to the user containing a button to go to DMs
+        view = discord.ui.View()
+        view.add_item(item=discord.ui.Button(
+            label="Go to DMs", url=dm.jump_url))
+        # Send the message with the embed and view
+        await interaction.response.send_message(embed=embed, ephemeral=True, view=view)
+        await msg.delete()
+    else:
+        await interaction.response.send_message("An unknown error occured, please try again later.")
+        print(error)
 
-    # Send the response
-    await interaction.response.send_message(embed=embed, ephemeral=True, view=view)
 
 
 @tree.command(name="tip", description="Send us your tips")
@@ -280,13 +297,13 @@ async def tip(interaction: discord.Interaction,
         color = None
 
         def __init__(self):
-            super().__init__(timeout=10)
+            super().__init__(timeout=30)
             self.value = None
 
         async def on_timeout(self):
             for child in self.children:
                 child.disabled = True
-            await self.message.edit(view=self)
+            await self.message.edit(view=None)
 
         @discord.ui.button(label="Confirm", style=discord.ButtonStyle.green)
         async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -324,6 +341,8 @@ async def tip(interaction: discord.Interaction,
                     timestamp=datetime.datetime.now(),
                     color=self.color
                 )
+                if interaction.user.avatar is not None:
+                    fe.set_thumbnail(url=interaction.user.avatar.url)
                 fe.set_footer(text="User ID: {0}".format(interaction.user.id))
                 await channel.send(embed=fe)
 
@@ -350,17 +369,28 @@ async def tip(interaction: discord.Interaction,
 async def tip_error(interaction: discord.Interaction, error):
     """If the user is not in DMs, send them a message to go to DMs."""
     # Embed to send to the user
-    print(error)
-    embed = discord.Embed(title="Works in DMs only!",
-                          description="Please direct message the bot.",
-                          color=0xc6be0f)
-    embed.set_footer(text="If this was in DMs, an inadvertent error occured.")
-    # View to send to the user containing a button to go to DMs
-    view = discord.ui.View()
     dm = await interaction.user.create_dm()
-    view.add_item(item=discord.ui.Button(label="Go to DMs", url=dm.jump_url))
-    # Send the message with the embed and view
-    await interaction.response.send_message(embed=embed, ephemeral=True, view=view)
+    try:
+        msg = await dm.send("Use the command in DMs only.")
+    except:
+        pass
+    if isinstance(error, app_commands.CheckFailure):
+        embed = discord.Embed(title="Works in DMs only!",
+                                description="Please direct message the bot.",
+                                color=0xc6be0f)
+        embed.set_footer(
+            text="If this was in DMs, an inadvertent error occured.")
+        # View to send to the user containing a button to go to DMs
+        view = discord.ui.View()
+        view.add_item(item=discord.ui.Button(
+            label="Go to DMs", url=dm.jump_url))
+        # Send the message with the embed and view
+        await interaction.response.send_message(embed=embed, ephemeral=True, view=view)
+        await msg.delete()
+    else:
+        await interaction.response.send_message("An unknown error occured, please try again later.")
+        print(error)
+
 
 
 @tree.command(name="menu", description="Explore the delicious menu of Los Pollos Hermanos")
@@ -395,7 +425,7 @@ async def new_menu(interaction: discord.Interaction,
         max_pages = len(menu_pages)
 
         def __init__(self):
-            super().__init__(timeout=30)
+            super().__init__(timeout=120)
             # update the buttons on first load
             self.update_buttons()
 
@@ -477,10 +507,16 @@ async def on_message(message: discord.Message):
         for i in ls[1:]:
             try:
                 from payments import Payment
-                temp_s = Payment.void_payment(i)
-                await message.reply(f"{i} : {temp_s}")
-            except:
+                from razorpay_custom import Razorpay
+                if len(i) < 10:
+                    temp_s = Payment.void_payment(i)
+                    await message.reply(f"{i} : {temp_s}")
+                else:
+                    temp_s = Razorpay.void_payment(i, True)
+                    await message.reply(f"{i} : {temp_s}")
+            except Exception as e:
                 await message.reply("Error in **{0}**".format(i))
+                print(e)
                 pass
     
     if message.content.lower() == ";;jesse restart" and message.author.id in owners:
@@ -548,7 +584,8 @@ async def feedback(interaction: discord.Interaction):
                 timestamp=datetime.datetime.now(),
                 color=Utils.random_hex_color()
             ))
-            embeds[0].set_thumbnail(url=user.avatar.url)
+            if user.avatar is not None:
+                embeds[0].set_thumbnail(url=user.avatar.url)
 
             # Second embed, contains the feedback title and description
             embeds.append(discord.Embed(

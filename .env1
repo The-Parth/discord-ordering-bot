@@ -9,3 +9,6 @@ EMAIL_SENDER_NAME = Name to be displayed on the email
 EMAIL_PASSWORD = Password of the email address (App passwords recommended)
 EMAIL_SMTP = smtp server address (eg. smtp.gmail.com)
 EMAIL_PORT = Port of the SMTP server
+
+RPAY_KEY_ID = Key ID for Razorpay
+RPAY_KEY_SECRET = Key Secret for Razorpay

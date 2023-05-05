@@ -98,7 +98,7 @@ class Utils():
                 embed.color = 0x408044
                 if option == "jesse":
                     embed.title = "Hey Mr. White, We need to cook"
-                    embed.description = "Wireeee!!"
+                    embed.description = "Ahh, Wireeee!!"
                 else:
                     embed.title = "I am the one who knocks"
                     embed.description = "So, Say my name"
@@ -142,7 +142,9 @@ class Utils():
 
     async def get_help_options(self, interaction: discord.Interaction, option: str = None):
         options = ["help", "menu", "cart view", "cart build",
-                   "cart clear", "place_order", "menu", "tip", "tictactoe"]
+                   "cart clear", "place_order", "tip", "email", "feedback", 
+                   "wallet view", "wallet refresh", "recharge fiat", "recharge crypto",
+                   "transactions recharge", "transactions orders", "bot_info"]
         if option.lower() == "jesse":
             return [discord.app_commands.Choice(name="You found the hidden cook", value="jesse")]
         if option.lower() in ["walter", "walt", "white"]:
