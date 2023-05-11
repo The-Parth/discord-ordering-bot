@@ -2,12 +2,22 @@ import discord
 from discord import app_commands
 from extras import Utils, Checkers
 import asyncio
+import os
 from wallet import Actions
+from dotenv import load_dotenv
+from payments import Payment
+from razorpay_custom import Razorpay
+load_dotenv()
 
 
 class Recharge(app_commands.Group):
     bot: discord.Client
     action_object = Actions()
+    
+    validity = {
+        "razorpay": False if os.getenv("RPAY_KEY_ID") is None or os.getenv("RPAY_KEY_SECRET") is None else True,
+        "coinbase": False if os.getenv("CB_TOKEN") is None else True
+    }
 
     def __init__(self, bot):
         super().__init__(name="recharge", description="Recharge your wallet")
@@ -15,17 +25,18 @@ class Recharge(app_commands.Group):
 
     async def payments_manager(self, interaction: discord.Interaction, amount: float, type: str):
         """Handle all payments"""
-        PAYMENT_CLASS = None
+        PAYMENT_CLASS = None # Payments Class
         order_id = str(Utils.order_id_gen(interaction.user.id))
-        from payments import Payment
-        from razorpay_custom import Razorpay
+
+        # We implements polymorphism here.
         if type == "razorpay":
             PAYMENT_CLASS = Razorpay
             order_id += "_RR"
         elif type == "coinbase":
             PAYMENT_CLASS = Payment
             order_id += "_RC"
-
+        
+        # Gets the user's email address, if set.
         email = self.action_object.get_email(interaction.user.id)
         if email is None:
             await interaction.response.send_message("You need to set your email before you can recharge your wallet. Use `/email <email>` to set your email")
@@ -88,6 +99,7 @@ class Recharge(app_commands.Group):
 
             if stats == 'PAID':
                 """Case when the payment is complete, and the user hasn't been notified yet"""
+                # Adds the reload
                 self.action_object.add_reload(
                     interaction.user.id, order_id, amount, PAYMENT_CLASS.check_payments(inv), inv["code"])
                 embed = discord.Embed(title=f"Invoice {inv['code']} Paid Successfully!",
@@ -174,6 +186,10 @@ class Recharge(app_commands.Group):
     )
     @Checkers.is_dm()
     async def reload_wallet(self, interaction: discord.Interaction, amount: app_commands.Range[float, 1, 10000]):
+        if not self.validity["coinbase"]:
+            await interaction.response.send_message("Cryto Payment is not configured yet. Please contact the bot owner.", ephemeral=True)
+            print("Crypto Payment Attempted but not configured!")
+            return
         await self.payments_manager(interaction, amount, "coinbase")
 
     @reload_wallet.error
@@ -208,6 +224,10 @@ class Recharge(app_commands.Group):
     )
     @Checkers.is_dm()
     async def fiat(self, interaction: discord.Interaction, amount: app_commands.Range[float, 30, 10000]):
+        if not self.validity["razorpay"]:
+            await interaction.response.send_message("Fiat Payment is not configured yet. Please contact the bot owner.", ephemeral=True)
+            print("Fiat Payment Attempted but not configured!")
+            return
         await self.payments_manager(interaction, amount, "razorpay")
 
     @reload_wallet.error

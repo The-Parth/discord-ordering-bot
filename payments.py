@@ -22,7 +22,7 @@ class Payment:
     check() is used to check if the invoice has been paid or is pending.
     requests are made to these methods using other functions in the app.
     """
-    def invoice(name: str, email: str, price: float, denomination: str , desc: str) -> dict:
+    def invoice(name: str, email: str, price: float, denomination: str, desc: str) -> dict:
         # URL for Coinbase Commerce API
         url = 'https://api.commerce.coinbase.com/invoices'
 
@@ -63,6 +63,9 @@ class Payment:
 
     # Method to check if an invoice has been paid or is pending, using Coinbase Commerce API
     def check(id: str) -> str:
+        if API_KEY == None:
+            return "API Key not found"
+
         # Invoice ID in the callback URL
         url = 'https://api.commerce.coinbase.com/invoices/' + id
 
@@ -81,9 +84,11 @@ class Payment:
         # Get transaction status
         status = response.json()["data"]["status"]
         return status
-    
-    def void_payment(invoice_id: str, id_pass = False):
+
+    def void_payment(invoice_id: str, id_pass=False):
         # Invoice VOID Endpoint
+        if API_KEY == None:
+            return "API Key not found"
         url = 'https://api.commerce.coinbase.com/invoices/' + invoice_id + '/void'
 
         # Headers required by Coinbase Commerce API
@@ -93,6 +98,8 @@ class Payment:
             'Accept': 'application/json',
             'X-CC-Version': '2018-03-22'
         }
+        
+        # Check the status to see if we can void it.
         status = Payment.check_payments(invoice_id, True)
         if status == "PAID":
             return "Invoice already paid"
@@ -102,16 +109,17 @@ class Payment:
             return "Invoice already expired"
         elif status == "UNRESOLVED":
             return "Invoice unresolved"
-        elif status ==  "VOID":
+        elif status == "VOID":
             return "Invoice already void"
         else:
+            # Void it if it can be voided
             requests.put(url, headers=headers)
             if Payment.check_payments(invoice_id, True) == "VOID":
                 return "Invoice voided successfully"
             else:
                 return "Invoice void failed"
-    
-    def check_payments(inv, id_pass = False):
+
+    def check_payments(inv, id_pass=False):
         """checks the status of the invoice by calling the check method of the Payment class"""
         from payments import Payment
         # calls the check method of the Payment class

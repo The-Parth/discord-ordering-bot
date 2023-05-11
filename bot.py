@@ -19,8 +19,13 @@ bot = discord.AutoShardedClient(intents=intents)
 tree = discord.app_commands.CommandTree(bot)
 owners = [354546286634074115]
 
-order_channel = int(os.getenv("ORDER_CHANNEL"))
-feedback_channel = int(os.getenv("FEEDBACK_CHANNEL"))
+order_channel = int(os.environ.get("ORDER_CHANNEL", 0))
+feedback_channel = int(os.environ.get("FEEDBACK_CHANNEL", 0))
+
+validity = {
+    "coinbase": True,
+    "razorpay": True,
+}
 
 bot_started = datetime.datetime.timestamp(datetime.datetime.now())
 
@@ -53,6 +58,7 @@ async def on_ready():
         # Adds the recharge command group to the tree
         tree.add_command(recharge)
 
+
         # Syncs the tree globally
         await tree.sync()
     except Exception as e:
@@ -80,7 +86,10 @@ async def status_task():
 )
 @app_commands.autocomplete(command=Utils().get_help_options)
 async def help(interaction: discord.Interaction, command: str = None):
+    """Gets help for a command"""
+    # The embed to be sent is generated using this.
     embed = Utils.help_embed(command)
+    # Sends the embed.
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -91,6 +100,7 @@ async def help(interaction: discord.Interaction, command: str = None):
 )
 async def place_order(interaction: discord.Interaction, instructions: str = None):
     """Places the order"""
+    # Imports the actions module from the wallet
     from wallet import Actions
     filepath = os.path.dirname(os.path.abspath(
         __file__)) + "\data\carts\{0}.json".format(interaction.user.id)
@@ -104,8 +114,10 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
     # Opens the cart
     cart = json.load(open(filepath, "r"))
 
+    # Gets the user's email
     email = Actions().get_email(interaction.user.id)
     if email is None:
+        # Sent if the user has no email set
         await interaction.response.send_message("You need to set your email first! Use `/email <email>`",
                                                 ephemeral=True)
         return
@@ -117,6 +129,7 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
 
     class PlaceOrderView(discord.ui.View):
         def __init__(self):
+            # Initializes the view
             super().__init__()
 
         @discord.ui.button(label="Confirm", style=discord.ButtonStyle.green)
@@ -124,6 +137,7 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
             """Confirms the order"""
             # Checks if the cart is empty
             if cart == {}:
+                # The message to be sent if the cart is empty
                 embed = discord.Embed(title="Your Cart is Empty",
                                       description="Your cart is empty, add something to it!",
                                       color=0x57eac8)
@@ -132,15 +146,16 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
                 await interaction.response.send_message(embed=embed, ephemeral=True)
                 return
             else:
-                """Now that we know the cart isn't empty, we can start formatting the menu string"""
-                """Menu string is a list of strings, each string is a page of the menu"""
-                """Pages are used so that the menu doesn't get too long and discord doesn't complain, 20 items per page"""
+                """Now that we know the cart isn't empty, we can start formatting the menu string
+                Menu string is a list of strings, each string is a page of the menu
+                Pages are used so that the menu doesn't get too long and discord doesn't complain, 20 items per page"""
                 menu_string = [""]*9
-                item_count = 0
-                total_items = 0
-                f = cart
-                amount = Utils.get_cart_total(cart)
+                item_count = 0 # The number of items in the cart
+                total_items = 0 # The total number of items in the cart
+                f = cart # The cart, used because I like it here
+                amount = Utils.get_cart_total(cart) # Gets the total cart value
                 if amount == 0:
+                    # If the cart value is 0, sends an ephemeral message
                     await interaction.response.edit_message("We do not accept orders for free items only!")
                     json.dump(json.load(open(limbo_path, "r")),
                             open(filepath, "w"), indent=2)
@@ -173,6 +188,9 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
                 embeds[0].title = "Order for {0}".format(interaction.user.name)
                 # Adds the total to the last embed
 
+                # Adds the user's details to the last embed
+                # Includes the user's ID, username, discriminator, email, and the number of items in the cart 
+                # The instructions are also added to the last embed
                 embeds.append(discord.Embed(title="Order Summary",
                                             color=rand_color))
                 embeds[-1].description = "**User ID**: {0}\n".format(
@@ -188,8 +206,11 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
                 embeds[-1].description += "\n**Instructions:** {0}".format(
                     instructions)
                 if interaction.user.avatar is not None:
+                    # Sets the thumbnail to the user's avatar if it exists
                     embeds[-1].set_thumbnail(url=interaction.user.avatar.url)
+            # Sets the timestamp of them embed to the current time
             timestamp_of_order = int(datetime.datetime.utcnow().timestamp())
+            # Limbopath for temporary storage of the cart
             limbo_path = os.path.dirname(os.path.abspath(
                 __file__)) + "\data\carts\limbo\{0}".format(
                     Utils.filename_gen(str(timestamp_of_order)[-1:-5:-1][::-1],
@@ -201,6 +222,7 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
             balance = Actions().get_wallet(
                 interaction.user.id)["data"]["balance"]
             if balance < amount:
+                # If the user doesn't have enough balance, sends an ephemeral message
                 embed = discord.Embed(title="Insufficient Balance!",
                                       description="You don't have enough balance to place this order!")
                 embed.add_field(name="Your Balance", value="₹{0}".format(balance), inline=False)
@@ -211,9 +233,11 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
                 await interaction.response.edit_message(embed=embed, view=None)
                 
                 return
+            # Gets the channel to which the order has to be sent for the restaurant
             channel = await bot.fetch_channel(os.getenv("ORDER_CHANNEL"))
-            order_id = Utils.order_id_gen(interaction.user.id)+"_O"
+            order_id = Utils.order_id_gen(interaction.user.id)+"_O" # Generates the order ID
             try:
+                # Tries to remove the balance from the user's wallet and add the order to the database
                 Actions().remove_balance(interaction.user.id, amount)
                 Actions().add_order(interaction.user.id, order_id, amount, f, "Confirmed", instructions)
             except Exception as e:
@@ -223,12 +247,14 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
                     await interaction.response.edit_message(content="Something went wrong, please try again later!", embed=None, view=None)
                 Actions().add_order(interaction.user.id, order_id, amount, f, "Cancelled", instructions)
             order_id = Utils.order_id_gen(interaction.user.id)+"_O"
+        
             embeds[-1].description += "\n**Order ID:** {0}".format(order_id)
             await channel.send("Order for {0}".format(interaction.user.name), embeds=embeds)
             embed = discord.Embed(title="Order placed!",
                                   description="Please wait for a staff member to process your order!",
                                   timestamp=datetime.datetime.now(),
                                   color=0x05f569)
+            # Shows the user their new balance
             embed.description += "\n**New Balance:** ₹{0}".format(round(balance-amount ,2))
             embed.set_footer(text="Order ID: {0}".format(order_id))
             os.remove(limbo_path)
@@ -246,10 +272,13 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
 
     # Creates the embed
     amount = Utils.get_cart_total(cart)
+    # Checks if the user has enough balance to place the order
     embed = discord.Embed(title="Confirm your order",
                           description="Please confirm your order by clicking the button below.\nThis will clear your cart." ,
                           color=0x05f569)
+    # Adds the total to the embed
     embed.set_footer(text="Check your cart before confirming!")
+    # Adds the total to the embed
     embed.add_field(name="Total", value="₹{0}".format(amount), inline=False)
     embed.add_field(name = "Your Balance", value = "₹{0}".format(Actions().get_wallet(interaction.user.id)["data"]["balance"]), inline=False)
     po_view = PlaceOrderView()
@@ -297,10 +326,12 @@ async def tip(interaction: discord.Interaction,
         color = None
 
         def __init__(self):
+            # Initializes the view
             super().__init__(timeout=30)
             self.value = None
 
         async def on_timeout(self):
+            # Disables the buttons on timeout
             for child in self.children:
                 child.disabled = True
             await self.message.edit(view=None)
@@ -310,6 +341,7 @@ async def tip(interaction: discord.Interaction,
             from wallet import Actions
             embed = discord.Embed()
             wallet = Actions().get_wallet(interaction.user.id)
+            # Checks if the user has enough balance to tip
             if wallet["data"]["balance"] < amount:
                 embed.title = "Insufficient Balance!"
                 embed.description = "You don't have enough balance in your wallet to send this tip!"
@@ -320,20 +352,25 @@ async def tip(interaction: discord.Interaction,
                 return
             else:
                 try:
+                    # Tries to send the tip
                     Actions().remove_balance(interaction.user.id, amount)
                 except Exception as e:
                     await interaction.response.edit_message(content=f"Error: {e}", embed=None, view=None)
                     return
 
                 embed.title = "Tip sent!"
+                # Shows the user their new balance
                 new_bal = Actions().get_wallet(
                     interaction.user.id)['data']['balance']
+                # Shows the user their new balance and the tip amount
                 embed.description = f"Your tip of **₹ {amount}** has been sent to the restaurant!" + \
                     f"\nYour new balance is **₹ {new_bal}**"
+                # Yeah THANKS for the support
                 embed.set_footer(text="Thank you for your support!")
                 embed.color = self.color
                 await interaction.response.edit_message(embed=embed, view=None)
                 channel = bot.get_channel(feedback_channel)
+                # Sends a message in the feedback channel to show how much a user loves us
                 fe = discord.Embed(
                     title="New Tip from {0}#{1}".format(
                         interaction.user.name, interaction.user.discriminator),
@@ -343,18 +380,22 @@ async def tip(interaction: discord.Interaction,
                 )
                 if interaction.user.avatar is not None:
                     fe.set_thumbnail(url=interaction.user.avatar.url)
+                # Sets the footer to the user's ID
                 fe.set_footer(text="User ID: {0}".format(interaction.user.id))
+                # I love you too, random patron
                 await channel.send(embed=fe)
 
                 return
 
         @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
         async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+            # Cancels the tip
             embed = discord.Embed(title="Tip cancelled!",
                                   description="Your tip has been cancelled!",
                                   color=self.color)
             await interaction.response.edit_message(embed=embed, view=None)
 
+    # Sends the tip confirmation message
     embed = discord.Embed(title="Confirm your tip",
                           description=f"Please confirm your tip of **₹ {amount}** by clicking the **Confirm** button below.",
                           color=Utils.random_hex_color())
@@ -362,6 +403,7 @@ async def tip(interaction: discord.Interaction,
     view = TipView()
     view.color = embed.color
     await interaction.response.send_message(embed=embed, view=view)
+    # Sets the message attribute of the view to the message sent
     view.message = await interaction.original_response()
 
 
@@ -433,6 +475,7 @@ async def new_menu(interaction: discord.Interaction,
             """Disables all buttons when the view times out"""
             item: discord.ui.Item  # type hinting
             for item in self.children:
+                # disable all buttons if the view times out
                 item.disabled = True
             self.message: discord.Message
             # edit the message to show that the menu has expired
@@ -492,7 +535,8 @@ def check_payments(inv):
 
 @bot.event
 async def on_message(message: discord.Message):
-    """Event handler for messages, detects all messages and responds to ones that satisfy the conditions"""
+    """Event handler for messages, detects all messages and responds to ones that satisfy the conditions
+    Most of this is for basic bot admin commands, you can remove this if you want, although I would recommend keeping it"""
     if message.author == bot.user:
         """If the message is sent by the bot, ignore it"""
         return
@@ -503,9 +547,11 @@ async def on_message(message: discord.Message):
         await bot.close()  # closes the bot
 
     if message.content.lower().startswith(";;void") and ((message.author.id in owners)):
+        # Void the payments. Only for admins
         ls = message.content.split()
         for i in ls[1:]:
             try:
+                # Manages to void for both Razorpay and Coinbase, so nice!
                 from payments import Payment
                 from razorpay_custom import Razorpay
                 if len(i) < 10:
@@ -520,10 +566,10 @@ async def on_message(message: discord.Message):
                 pass
     
     if message.content.lower() == ";;jesse restart" and message.author.id in owners:
+        # Restarts the bot. Only for admins. NOT RECOMMENDED TO USE UNLESS NECESSARY
         await message.reply("Okay Mr. White, I'm restarting!")
-        import sys
         print("Bot restarted by", message.author)
-        os.execv(sys.executable, ['python'] + sys.argv)
+        await restart_program()
 
     if message.content.lower().startswith(";;del") and ((message.author.id in owners) or (message.guild is None)):
         """deletes messages with ids given after ;;del if the author is in the owners list"""
@@ -678,5 +724,68 @@ async def bot_info(interaction: discord.Interaction):
     )
     msg = await interaction.original_response()
     await msg.add_reaction("🏓")
+    
+async def restart_program():
+    """Restarts the current program, with file objects and descriptors"""
+    import psutil
+    try:
+        p = psutil.Process(os.getpid())
+        await bot.close()
+        print ("Restarting", p.name(), p.pid)
+        print ("Process has been killed")
+        os.kill(p.pid, 9)
+    except Exception as e:
+        print(e)
+    
 
+    
+def check_env():
+    # Check set 1
+    if os.getenv("TOKEN") == None:
+        print("No discord bot token (TOKEN) is set in the .env file")
+        exit(0)
+    if os.getenv("CB_TOKEN") == None:
+        print("No Coinbase token (CB_TOKEN) is set in the .env file")
+        print("Bot starting, but will cause errors")
+        validity["coinbase"] = False
+        
+    # Check set 2
+    if os.getenv("ORDER_CHANNEL") == None:
+        print("No order channel (ORDER_CHANNEL) is set in the .env file")
+        exit(0)
+    if os.getenv("FEEDBACK_CHANNEL") == None:
+        print("No feedback channel (FEEDBACK_CHANNEL) is set in the .env file")
+        exit(0)
+        
+    # Check set 3 : Email
+    if os.getenv("EMAIL_SENDER") == None:
+        print("No email sender (EMAIL_SENDER) is set in the .env file")
+        exit(0)
+    if os.getenv("EMAIL_PASSWORD") == None:
+        print("No email password (EMAIL_PASSWORD) is set in the .env file")
+        exit(0)
+    if os.getenv("EMAIL_SMTP") == None:
+        print("No email smtp (EMAIL_SMTP) is set in the .env file")
+        exit(0)
+    if os.getenv("EMAIL_PORT") == None:
+        print("No email port (EMAIL_PORT) is set in the .env file")
+        print("Defaulting to port 587")
+        os.environ["EMAIL_PORT"] = "587"
+        
+    if os.getenv("EMAIL_SENDER_NAME") == None:
+        print("No email sender (EMAIL_SENDER_NAME) is set in the .env file")
+        print("Bot starting with default name")
+        os.environ["EMAIL_SENDER_NAME"] = "OTP Bot"
+    
+    # Check set 4 : Razorpay
+    if os.getenv("RPAY_KEY_ID") == None:
+        print("No razorpay key id (RPAY_KEY_ID) is set in the .env file")
+        print("Bot starting, but will cause errors")
+        validity["razorpay"] = False
+    if os.getenv("RPAY_KEY_SECRET") == None:
+        print("No razorpay key secret (RPAY_KEY_SECRET) is set in the .env file")
+        print("Bot starting, but will cause errors")
+        validity["razorpay"] = False
+
+check_env()
 bot.run(os.getenv("TOKEN"))

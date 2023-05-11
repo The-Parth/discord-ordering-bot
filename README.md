@@ -5,7 +5,7 @@ A bot which allows people to buy stuff from you using a discord bot!
 ## Features
 
 - Portable python script, runs on windows as well as linux
-- Easy deployment
+- Simple, beginner friendly deployment
 - Integrated crypto payments using Coinbase Commerce
 - Integrated Fiat payments using Razorpay
 - Uses interactions from discord.py 2.0
@@ -19,16 +19,14 @@ Clone the project into it's seperate folder
     git clone https://github.com/The-Parth/discord-ordering-bot
 ```
 
-Grab all the required dependencies.
+Grab all the required dependencies simply by running the main file.
 
 ```bash
-    pip install discord
-    pip install python-dotenv
-    pip install requests
-    pip install aiosmtplib
+    python main.py
 ```
 
 As simple as that! Just set up your .ENV variables and you are good to go!
+Note: You might have a different python version. In that case, use py, py3 or python3 instead of python.
 
 ## Authors and Contributors
 

@@ -1,0 +1,4 @@
+discord>=2.1.0 , <2.1.1
+python-dotenv
+requests>=2.28
+aiosmtplib==2.0.1

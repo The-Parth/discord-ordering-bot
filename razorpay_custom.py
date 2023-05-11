@@ -57,6 +57,8 @@ class Razorpay:
 
     # Method to check if a payment has been paid or is pending, using Razorpay API
     def check(id: str) -> str:
+        if KEY_ID == None or KEY_SECRET == None:
+            return "ERROR: Razorpay API keys not found"
         # Payment URL and ID
         url = RPAY_URL + 'payment_links/' + id
 
@@ -75,6 +77,9 @@ class Razorpay:
 
     # Method to void a payment, using Razorpay API
     def void_payment(id: str, id_pass = False):
+        if KEY_ID == None or KEY_SECRET == None:
+            return "ERROR: Razorpay API keys not found"
+
         # Payment VOID Endpoint
         url = RPAY_URL + 'payment_links/' + id + '/cancel'
 
@@ -97,6 +102,9 @@ class Razorpay:
             return "Payment could not be cancelled"
         
     def get_link(inv_id): 
+        if KEY_ID == None or KEY_SECRET == None:
+            return "http://txti.es/ijro8"
+        
         url = RPAY_URL + 'payment_links/' + inv_id
         headers = {
             'Content-type': 'application/json'
