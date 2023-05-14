@@ -12,3 +12,5 @@ EMAIL_PORT = Port of the SMTP server
 
 RPAY_KEY_ID = Key ID for Razorpay
 RPAY_KEY_SECRET = Key Secret for Razorpay
+
+MONGO_URI = Your mongo uri from whatever mongodb instance you are using 
