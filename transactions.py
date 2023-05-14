@@ -17,43 +17,59 @@ class Transactions(app_commands.Group):
         self.actions_obj = Actions()
 
     def transactions_paginate(self, transactions: dict, order_list: list) -> discord.Embed:
+        # Generate embed
         embed = discord.Embed(
             title="Recharge History",
             description="",
             color=0x5481e8,
             timestamp=datetime.datetime.now()
         )
+        
+        # Add transaction details to embed
         for order_id in order_list:
             order = transactions[order_id]
             data = self.get_idbased_transaction_data(order_id)
             embed.description += f"**{order_id}** -- **Rs. {order['amount']}**\n"
-            embed.description += f"Status: *{order['status']}*\nTime: *{data['time']}*\n\n"
+            embed.description += f"Status: ***{order['status']}***\nTime: *{data['time']}*\n"
+            embed.description += f"Type: **{data['type']}**\n\n"
 
-        return embed
+        return embed # Return embed
 
     class Autocompletes:
+        """This class contains methods for autocompleting transaction IDs for slash commands"""
         async def get_reload_ids(self, interaction: discord.Interaction, id: str = None):
+            """This method returns a list of transaction IDs for reloads, for autocompletion"""
+            # Fetch reloads
             transactions = Actions().get_transactions(interaction.user.id)[
                 "data"]["reloads"]
-            transactions: typing.Dict[str, str]
-            keys = transactions.keys()
+            transactions: typing.Dict[str, str] # Type hinting
+            keys = transactions.keys() # Get keys
+            # If id is None, return all keys
             if id is None:
                 return [discord.app_commands.Choice(name=i, value=i) for i in keys][::-1][:25]
+            # Else, return keys that match the id
             return [discord.app_commands.Choice(name=i, value=i) for i in keys if id.lower() in i.lower()][::-1][:25]
 
         async def get_order_ids(self, interaction: discord.Interaction, id: str = None):
+            """This method returns a list of transaction IDs for orders, for autocompletion"""
+            # Fetch orders
             transactions = Actions().get_transactions(interaction.user.id)[
                 "data"]["orders"]
-            transactions: typing.Dict[str, str]
-            keys = transactions.keys()
+            transactions: typing.Dict[str, str] # Type hinting
+            keys = transactions.keys() # Get keys
+            # If id is None, return all keys
             if id is None:
                 return [discord.app_commands.Choice(name=i, value=i) for i in keys][::-1][:25]
+            # Else, return keys that match the id
             return [discord.app_commands.Choice(name=i, value=i) for i in keys if id.lower() in i.lower()][::-1][:25]
 
     def get_idbased_transaction_data(self, id: str):
+        """Fetches data present in a transaction ID"""
         import time
-        ls = id.split('_')
-        t = ""
+        ls = id.split('_') # Split ID by _
+        # done to remain in scope of the function
+        t = "" 
+        # Check type of transaction
         if ls[2].upper() == 'O':
             t = 'ORDER'
         elif ls[2].upper() == 'R':
@@ -62,8 +78,11 @@ class Transactions(app_commands.Group):
             t = 'RELOAD_COINBASE'
         elif ls[2].upper() == 'RR':
             t = 'RELOAD_RAZORPAY'
+        
+        # Get timestamp from ID
         timestamp = int(ls[0], 36)
 
+        # Data to return
         data = {
             "user": int(ls[1], 36),
             "type": t,
@@ -74,11 +93,17 @@ class Transactions(app_commands.Group):
         return data
 
     def embed_for_reloads(self, transactions: dict, id: str) -> discord.Embed:
+        """Generates an embed for reloads"""
+        # Generate embed
         embed = discord.Embed(
             title="Recharge Details",
             color=0x5481e8
         )
+        
+        # Get transaction data
         data = self.get_idbased_transaction_data(id)
+        
+        # Add transaction details to embed
         embed.description = f"**ID:** {id}\n**Type:** "+data['type']
         embed.add_field(name="Amount", value=str(
             transactions[id]['amount']), inline=True)
@@ -89,34 +114,46 @@ class Transactions(app_commands.Group):
         embed.set_footer(text=f"User ID: {data['user']}")
         embed.timestamp = datetime.datetime.fromtimestamp(
             data['timestamp'] - data['timezone'])
-        view = discord.ui.View()
+        
+        view = discord.ui.View() # Create view
         payment_url = ""
+        # Check type of transaction and generate link accordingly
         if data['type'] == "RELOAD_COINBASE":
             payment_url = f"https://commerce.coinbase.com/invoices/{transactions[id]['invoice']}"
         elif data['type'] == "RELOAD_RAZORPAY":
             from razorpay_custom import Razorpay
             payment_url = Razorpay.get_link(transactions[id]['invoice'])
+        
+        # Add button to view invoice, if status is not void and is open or viewed, asking to pay
         if transactions[id]['status'] == "OPEN" or transactions[id]['status'] == "VIEWED":
             embed.color = 0x2fe466
             button = discord.ui.Button(
                 label="Pay", url=payment_url)
             view.add_item(button)
+        
+        # Add button to view invoice, if status is not void and is paid or cancelled, asking to view invoice
         elif transactions[id]['status'] != "VOID":
             button = discord.ui.Button(
                 label="View Invoice", url=payment_url)
             view.add_item(button)
 
+        # Return embed and view as tuple
         return embed, view
 
     async def embed_for_orders(self, transactions: dict, id: str) -> discord.Embed:
+        """Generates an embed for orders"""
+        # Generate embed
         embed = discord.Embed(
             title="Order Details",
             color=0x44f3f3
         )
+        # Fetch cart for order
         cart = transactions[id]['cart']
         menu_string = [""]*9
         item_count = 0
         total_items = 0
+        
+        # Cart embed generation, similar to one from bot.py
         amount = Utils.get_cart_total(cart)
         data = self.get_idbased_transaction_data(id)
         embed.description = f"**ID:** {id}\n**Type:** "+data['type']
@@ -179,7 +216,8 @@ class Transactions(app_commands.Group):
     @app_commands.describe(id="The ID of the transaction to view")
     @Checkers.is_dm()
     @app_commands.autocomplete(id=Autocompletes.get_reload_ids)
-    async def recharge(self, interaction: discord.Interaction, id: str = None, page_number: int = 1):
+    async def recharge(self, interaction: discord.Interaction, id: str = None, page_number: app_commands.Range[int, 1, None] = 1):
+        """Recharge command"""
         transactions = self.actions_obj.get_transactions(interaction.user.id)[
             "data"]["reloads"]
         if id is not None:
@@ -341,7 +379,7 @@ class Transactions(app_commands.Group):
     @app_commands.describe(id="The ID of the transaction to view")
     @Checkers.is_dm()
     @app_commands.autocomplete(id=Autocompletes.get_order_ids)
-    async def orders(self, interaction: discord.Interaction, id: str = None, page_number: int = 1):
+    async def orders(self, interaction: discord.Interaction, id: str = None, page_number: app_commands.Range[int, 1, None] = 1):
         transactions = self.actions_obj.get_transactions(interaction.user.id)[
             "data"]["orders"]
         if id is not None:

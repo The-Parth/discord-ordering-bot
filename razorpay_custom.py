@@ -2,6 +2,7 @@ import requests
 import os
 import datetime
 from dotenv import load_dotenv
+from extras import PaymentClass
 
 load_dotenv()
 
@@ -12,18 +13,22 @@ RPAY_URL = "https://api.razorpay.com/v1/"
 # Here we use Razorpay's Payment Links API to create a payment link
 
 
-class Razorpay:
+class Razorpay(PaymentClass):
+    """
+    This class handles the payment process using Razorpay's Payment Links API.
+    """
     def invoice(name: str, email: str, price: float, denomination: str, desc: str) -> dict:
         # URL for Razorpay API to create a payment link
         url = RPAY_URL + 'payment_links'
-
+        if price <= 0:
+            raise ValueError("Amount must be greater than 0")
         # Headers required by Razorpay API
         headers = {
             'Content-type': 'application/json',
         }
         # Body for the POST request to API
         body = {
-            "amount": price*100,
+            "amount": int(price*100),
             "currency": denomination,
             "description": desc,
             "customer": {
@@ -101,7 +106,7 @@ class Razorpay:
         else:
             return "Payment could not be cancelled"
         
-    def get_link(inv_id): 
+    def get_link(inv_id) -> str:
         if KEY_ID == None or KEY_SECRET == None:
             return "http://txti.es/ijro8"
         
@@ -118,6 +123,7 @@ class Razorpay:
             inv = inv['id']
         status = Razorpay.check(inv)
         return status.upper()
+    
     
 
 
