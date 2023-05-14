@@ -215,14 +215,6 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
                     embeds[-1].set_thumbnail(url=interaction.user.avatar.url)
             # Sets the timestamp of them embed to the current time
             timestamp_of_order = int(datetime.datetime.utcnow().timestamp())
-            # Limbopath for temporary storage of the cart
-            limbo_path = os.path.dirname(os.path.abspath(
-                __file__)) + "\data\carts\limbo\{0}".format(
-                    Utils.filename_gen(str(timestamp_of_order)[-1:-5:-1][::-1],
-                                       str(interaction.user.id),
-                                       "json"))
-            limbo_path = Utils.path_finder(limbo_path)
-            json.dump(cart, open(limbo_path, "w"), indent=2)
             cartdb.delete_one({"_id": str(interaction.user.id)})
             balance = Actions().get_wallet(
                 interaction.user.id)["data"]["balance"]
@@ -232,9 +224,7 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
                                       description="You don't have enough balance to place this order!")
                 embed.add_field(name="Your Balance", value="₹{0}".format(balance), inline=False)
                 embed.add_field(name="Order Total", value="₹{0}".format(amount), inline=False)
-                limbo_cart = json.load(open(limbo_path, "r"))
-                cartdb.insert_one({"_id": str(interaction.user.id), "user_id": str(interaction.user.id), "cart": limbo_cart})
-                os.remove(limbo_path)
+                cartdb.insert_one({"_id": str(interaction.user.id), "user_id": str(interaction.user.id), "cart": cart})
                 await interaction.response.edit_message(embed=embed, view=None)
                 
                 return
@@ -262,7 +252,6 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
             # Shows the user their new balance
             embed.description += "\n**New Balance:** ₹{0}".format(round(balance-amount ,2))
             embed.set_footer(text="Order ID: {0}".format(order_id))
-            os.remove(limbo_path)
             await interaction.response.edit_message(embed=embed, view=None)
             await interaction.followup.send(embeds=embeds)
 
