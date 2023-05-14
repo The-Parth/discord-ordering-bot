@@ -2,6 +2,7 @@ import discord
 import datetime
 import os
 import json
+from abc import ABC, abstractmethod
 
 
 class Checkers():
@@ -231,6 +232,7 @@ class Utils():
         tries_left: int
 
         async def on_submit(self, interaction: discord.Interaction):
+            # Check if the OTP is correct
             self.tries_left -= 1
             if self.otp.value.upper() == self.sent_otp:
                 from wallet import Actions
@@ -240,11 +242,84 @@ class Utils():
                 if self.tries_left == 0:
                     await interaction.response.edit_message(content="Out of Tries. Please try sending a new OTP.", view=None)
                 else:
+                    # We need to send a new modal with the updated tries_left
+                    # We are generously giving 3 tries to the user
                     OTPView = Utils.OTPView(self.sent_otp, self.tries_left)
                     OTPView.email = self.email
                     OTPView.message = interaction.original_response()
                     await interaction.response.edit_message(content=f"Invalid OTP, You have {self.tries_left} tries left", view=OTPView)
 
+class PaymentClass(ABC):
+    """
+    Abstract class for payment gateways class
+    In our case, we have 2 payment gateways, Razorpay and Coinbase Commerce
+    """
+    @abstractmethod
+    def invoice(name: str, email: str, price: float, denomination: str, desc: str) -> dict:
+        """
+        Generates an invoice for the user to pay, which is a link to the payment gateway
+        
+        Args:
+            name (str): name of the user
+            email (str): email of the user
+            price (float): amount to be paid
+            denomination (str): currency of the amount, usually INR or USD
+            desc (str): description of the invoice
 
+        Returns:
+            dict: invoice object, a dictionary containing the invoice id, code and the link to the payment gateway
+            form : {"id": str, "code": str, "link": str}
+        """
+        pass
+    
+    @abstractmethod
+    def check(id: str) -> str:
+        """
+        Checks the status of the transaction
+
+        Args:
+            id (str): Transaction or invoice id
+
+        Returns:
+            str: Status of the transaction
+        """
+        pass
+    
+    @abstractmethod
+    def void_payment(invoice_id: str, id_pass=False):
+        """_
+        Voids the payment
+        
+        Args:
+            invoice_id (str): The invoice id to be voided
+            id_pass (bool, optional): Switch to be used if id is passed instead of inv. Defaults to False.
+        """
+        pass
+    
+    @abstractmethod
+    def get_link(inv_id) -> str:
+        """
+        Returns the link to the payment gateway
+        
+        Args:
+            inv_id (_type_): Invoice id
+
+        Returns:
+            str: Link to the payment gateway
+        """
+        pass
+    
+    @abstractmethod
+    def check_payments(inv, id_pass=False):
+        """
+        Checks the payments for the invoice
+
+        Args:
+            inv (_type_): _description_
+            id_pass (bool, optional): _description_. Defaults to False.
+        """
+        pass
+    
+    
 class Orders():
     pass

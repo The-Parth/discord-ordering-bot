@@ -2,6 +2,7 @@ import requests
 import os
 import asyncio
 from dotenv import load_dotenv
+from extras import PaymentClass
 
 # Load Coinbase Commerce API key from .env file
 load_dotenv()
@@ -10,7 +11,7 @@ API_KEY = os.getenv("CB_TOKEN")
 # Coinbase Commerce API used to accept payments using request to its rest API
 
 
-class Payment:
+class Payment(PaymentClass):
     """
     Various aspects of the payment process are handled by this class.
     invoice() is used to create an invoice for the user to pay.
@@ -25,7 +26,10 @@ class Payment:
     def invoice(name: str, email: str, price: float, denomination: str, desc: str) -> dict:
         # URL for Coinbase Commerce API
         url = 'https://api.commerce.coinbase.com/invoices'
-
+        
+        if price <= 0:
+            raise ValueError("Amount must be greater than 0")
+        
         # Headers required by Coinbase Commerce API
         headers = {
             'X-CC-Api-Key': API_KEY,
@@ -119,6 +123,9 @@ class Payment:
             else:
                 return "Invoice void failed"
 
+    def get_link(inv_id):
+        return "https://commerce.coinbase.com/invoices/" + inv_id
+    
     def check_payments(inv, id_pass=False):
         """checks the status of the invoice by calling the check method of the Payment class"""
         from payments import Payment

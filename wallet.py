@@ -5,44 +5,52 @@ import asyncio
 import datetime
 from discord import app_commands
 from extras import Utils, Checkers
+import pymongo
+from bson.objectid import ObjectId
 
+client = pymongo.MongoClient(os.environ.get("MONGO_URI"))
+db = client.DiscordDB
+walletdb = db.wallets
+orderdb = db.orders
+reloaddb = db.reloads
 
 class Actions:
+    def to_json(self, data):
+        import bson.json_util as json_util
+        return json_util.loads(json_util.dumps(data))
+    
     def make_wallet(self, user_id):
-        # Gets the user's wallet
-        filepath = os.path.dirname(os.path.abspath(
-            __file__)) + f"/data/wallets/{str(user_id)}.json"
-        # Makes it fit your OS
-        filepath = Utils.path_finder(filepath)
-        # Makes the wallet if it doesn't exist
-        if not os.path.isfile(filepath):
+        t = walletdb.find_one({"_id": str(user_id)})
+        if t is None:
             user_file = {
+                "_id": str(user_id),
                 "user_id": str(user_id),
                 "balance": 0,
                 "email": "",
             }
             # Saves the wallet
-            json.dump(user_file, open(filepath, "w"), indent=4)
-        return filepath
+            walletdb.insert_one(user_file)
+        
+        # Gets the user's wallet
+        wallet = walletdb.find_one({"_id": str(user_id)}) 
+        return self.to_json(wallet)
+        
 
     def add_email(self, user_id, email):
-        wallet = self.get_wallet(user_id)
-        wallet["data"]["email"] = email
-        json.dump(wallet["data"], open(wallet["filepath"], "w"), indent=4)
+        walletdb.update_one({"_id": str(user_id)}, {"$set": {"email": email}})
 
     def get_email(self, user_id):
-        wallet = self.get_wallet(user_id)["data"]["email"]
+        wallet = walletdb.find_one({"_id": str(user_id)})["email"]
+        print(wallet)
         if wallet == "":
             return None
         return wallet
 
     def get_wallet(self, user_id):
         # Gets the user's wallet from the make_wallet function
-        filepath = self.make_wallet(user_id)
-        # Loads the wallet
-        user_data = json.load(open(filepath, 'r'))
+        wallet = self.make_wallet(user_id)
         # Returns the wallet
-        return {"data": user_data, "filepath": filepath}
+        return {"data": wallet}
 
     def add_balance(self, user_id, amount):
         # gets the wallet
@@ -51,7 +59,7 @@ class Actions:
         wallet["data"]["balance"] += amount  # adds the amount to the balance
         wallet["data"]["balance"] = round(wallet["data"]["balance"], 2)
         # Saves it in the users data
-        json.dump(wallet["data"], open(wallet["filepath"], "w"), indent=4)
+        walletdb.update_one({"_id": str(user_id)}, {"$set": {"balance": wallet["data"]["balance"]}})
 
     def remove_balance(self, user_id, amount):
         class TooMuchSpent(Exception):
@@ -65,27 +73,26 @@ class Actions:
         if wallet["data"]["balance"] < 0:
             raise TooMuchSpent("I see shenanigans")
         # Saves it in the users data, if the balance is greater than 0
-        json.dump(wallet["data"], open(wallet["filepath"], "w"), indent=4)
+        walletdb.update_one({"user_id": str(user_id)}, {"$set": {"balance": wallet["data"]["balance"]}})
 
     def get_transactions(self, user_id):
-        # Gets the user's transactions
-        filepath = os.path.dirname(os.path.abspath(
-            __file__)) + f"/data/transactions/{str(user_id)}.json"
-        # Makes it fit your OS
-        filepath = Utils.path_finder(filepath)
-        # Makes the transactions if it doesn't exist
-        if not os.path.isfile(filepath):
-            user_file = {
+        # Gets the transactions from mongodb
+        transactions = orderdb.find_one({"_id": str(user_id)})
+        # If there are no transactions
+        
+        if transactions is None:
+            transactions = {
+                "_id": str(user_id),
                 "user_id": str(user_id),
                 "orders": {},
                 "reloads": {},
             }
             # Saves the transactions
-            json.dump(user_file, open(filepath, "w"), indent=4)
-        # Loads the transactions
-        user_data = json.load(open(filepath, 'r'))
+            orderdb.insert_one(transactions)
+        else:
+            transactions = self.to_json(transactions)
         # Returns the transactions
-        return {"data": user_data, "filepath": filepath}
+        return {"data": transactions}
 
     def add_order(self, user_id, order_id, amount, cart, status, instructions: None):
         # Gets the user's transactions
@@ -99,9 +106,8 @@ class Actions:
         # Adds the instructions if there are any
         if instructions is not None:
             transactions["data"]["orders"][order_id]["instructions"] = instructions
-        # Saves the transactions
-        json.dump(transactions["data"], open(
-            transactions["filepath"], "w"), indent=4)
+        # Saves the transactions to mongodb
+        orderdb.update_one({"_id": str(user_id)}, {"$set": {f"orders.{order_id}": transactions["data"]["orders"][order_id]}})
 
     def add_reload(self, user_id, reload_id, amount, status, invoice=None):
         # Gets the user's transactions
@@ -113,9 +119,7 @@ class Actions:
             "invoice": invoice,
         }
         # Saves the transactions
-        json.dump(transactions["data"], open(
-            transactions["filepath"], "w"), indent=4)
-
+        orderdb.update_one({"_id": str(user_id)}, {"$set": {f"reloads.{reload_id}": transactions["data"]["reloads"][reload_id]}})
 
 class WalletActions(app_commands.Group):
 
@@ -211,3 +215,4 @@ class WalletActions(app_commands.Group):
             await interaction.response.send_message("Works in DMs only!", ephemeral=True)
         else:
             await interaction.response.send_message("An unknown error occured, please try again later.", ephemeral=True)
+
