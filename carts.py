@@ -2,11 +2,15 @@ import discord
 from discord import app_commands
 from extras import Utils, Checkers
 import os, json
+import pymongo
+
+client = pymongo.MongoClient(os.environ.get("MONGO_URI"))
+db = client.DiscordCartDB
+cartdb = db.carts
 
 
 class CartActions(app_commands.Group):
     """Command group for cart actions, placed in the cart command group"""
-    
     def __init__(self, bot: discord.Client):
         super().__init__(name="cart", description="Perform actions on your cart")
         self.bot = bot
@@ -14,18 +18,22 @@ class CartActions(app_commands.Group):
     @app_commands.command(name="view", description="View your current cart")
     async def view(self, interaction: discord.Interaction):
         """View your current cart"""
-        # Gets the filepath of the cart json file for the user, and creates it if it doesn't exist'
-        filepath = os.path.dirname(os.path.abspath(
-            __file__)) + "\data\carts\{0}.json".format(interaction.user.id)
-        # Makes it fit your OS
-        filepath = Utils.path_finder(filepath)
+        # Gets the cart from mongodb
+        cart = cartdb.find_one({"_id": str(interaction.user.id)})
 
         # Creates the file if it doesn't exist
-        if not os.path.isfile(filepath):
-            with open(filepath, "w") as f:
-                json.dump({}, f, indent=2)
-        # Loads the file
-        f = json.load(open(filepath, "r"))
+        if cart is None:
+            cart = {
+                "_id": str(interaction.user.id),
+                "user_id": str(interaction.user.id),
+                "cart": {},
+            }
+            cartdb.insert_one(cart)
+            f = cart
+        else:
+            f = Utils.to_json(cart)
+        
+        f  = f["cart"]
 
         # Checks if the cart is empty
         if f == {}:
@@ -96,15 +104,19 @@ class CartActions(app_commands.Group):
         with open(filepath, "r") as f:
             menu = json.load(f)
 
-        # Gets the filepath of the cart json file for the user, and creates it if it doesn't exist
-        filepath = os.path.dirname(os.path.abspath(
-            __file__)) + "\data\carts\{0}.json".format(interaction.user.id)
-        # Makes it fit your OS
-        filepath = Utils.path_finder(filepath)
-
-        # Creates the cart if it doesn't exist
-        if not os.path.isfile(filepath):
-            json.dump({}, open(filepath, "w"), indent=2)
+        # Gets the filepath of the cart from mongodb and loads it
+        cart = cartdb.find_one({"_id": str(interaction.user.id)})
+        if cart is None:
+            cart = {
+                "_id": str(interaction.user.id),
+                "user_id": str(interaction.user.id),
+                "cart": {},
+            }
+            cartdb.insert_one(cart)
+        else:
+            cart = Utils.to_json(cart)
+        cart = cart["cart"]
+        
         menu_pages = Utils.list_divider(menu, 10)
         overflow_flag = False  # Flag to check if the page number is too high
 
@@ -142,17 +154,17 @@ class CartActions(app_commands.Group):
             def update_pages(self):
                 """Updates the buttons in the view when the page is changed, also called when the view is initialized"""
                 # Gets the filepath of the cart json file for the user, and creates it if it doesn't exist
-                filepath = os.path.dirname(os.path.abspath(
-                    __file__)) + "\data\carts\{0}.json".format(interaction.user.id)
-                # Makes it fit your OS
-                filepath = Utils.path_finder(filepath)
-
-                # Creates the cart if it doesn't exist
-                if not os.path.isfile(filepath):
-                    json.dump({}, open(filepath, "w"), indent=2)
-
-                # Loads the cart
-                cart = json.load(open(filepath, "r"))
+                cart = cartdb.find_one({"_id": str(interaction.user.id)})
+                if cart is None:
+                    cart = {
+                        "_id": str(interaction.user.id),
+                        "user_id": str(interaction.user.id),
+                        "cart": {},
+                    }
+                    cartdb.insert_one(cart)
+                else:
+                    cart = Utils.to_json(cart)
+                cart = cart["cart"]
 
                 # Checks page number and updates the buttons accordingly
                 if self.current_page == 1:
@@ -192,18 +204,18 @@ class CartActions(app_commands.Group):
 
             def update_carts(self, action):
                 """Updates the cart when an item is added or removed, or the select menu option is changed"""
-                # Gets the filepath of the cart json file for the user, and creates it if it doesn't exist
-                filepath = os.path.dirname(os.path.abspath(
-                    __file__)) + "\data\carts\{0}.json".format(interaction.user.id)
-                # Makes it fit your OS
-                filepath = Utils.path_finder(filepath)
-
-                # Creates the cart if it doesn't exist
-                if not os.path.isfile(filepath):
-                    json.dump({}, open(filepath, "w"), indent=2)
-
-                # Loads the cart
-                cart = json.load(open(filepath, "r"))
+                # Gets the cart from the database
+                cart = cartdb.find_one({"_id": str(interaction.user.id)})
+                if cart is None:
+                    cart = {
+                        "_id": str(interaction.user.id),
+                        "user_id": str(interaction.user.id),
+                        "cart": {},
+                    }
+                    cartdb.insert_one(cart)
+                else:
+                    cart = Utils.to_json(cart)
+                cart = cart["cart"]
 
                 if action == "ADD":
                     """Adds an item to the cart"""
@@ -258,8 +270,9 @@ class CartActions(app_commands.Group):
                     i.description = "In Cart : {0}".format(cart[i.label.split(
                         " : ")[0]]['quantity'] if i.label.split(" : ")[0] in cart else 0)
 
-                # Saves the cart
-                json.dump(cart, open(filepath, "w+"), indent=2)
+                # Saves the cart to the database
+                cartdb.update_one({"_id": str(interaction.user.id)}, {
+                    "$set": {"cart": cart}})
 
             @discord.ui.button(label="Previous", style=discord.ButtonStyle.green, row=2)
             async def prev(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -432,13 +445,8 @@ class CartActions(app_commands.Group):
                         # Checks if the user is the original author of the message
                         await interaction.response.send_message("You can't do that!", ephemeral=True)
                         return
-                filepath = os.path.dirname(os.path.abspath(
-                    __file__)) + "\data\carts\{0}.json".format(interaction.user.id)
-                # Makes it fit your OS
-                filepath = Utils.path_finder(filepath)
-                # Edits the message with the new view
-                if os.path.exists(filepath):
-                    os.remove(filepath)
+                # deletes the cart from mongo
+                cartdb.delete_one({"_id": str(interaction.user.id)})
                 embed = discord.Embed(title="Cart cleared!",
                                       description="Your cart has been cleared!",
                                       color=0xc6be0f)

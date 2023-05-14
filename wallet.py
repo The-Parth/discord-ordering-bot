@@ -6,18 +6,13 @@ import datetime
 from discord import app_commands
 from extras import Utils, Checkers
 import pymongo
-from bson.objectid import ObjectId
 
 client = pymongo.MongoClient(os.environ.get("MONGO_URI"))
 db = client.DiscordDB
 walletdb = db.wallets
 orderdb = db.orders
-reloaddb = db.reloads
 
 class Actions:
-    def to_json(self, data):
-        import bson.json_util as json_util
-        return json_util.loads(json_util.dumps(data))
     
     def make_wallet(self, user_id):
         t = walletdb.find_one({"_id": str(user_id)})
@@ -33,7 +28,7 @@ class Actions:
         
         # Gets the user's wallet
         wallet = walletdb.find_one({"_id": str(user_id)}) 
-        return self.to_json(wallet)
+        return Utils.to_json(wallet)
         
 
     def add_email(self, user_id, email):
@@ -90,7 +85,7 @@ class Actions:
             # Saves the transactions
             orderdb.insert_one(transactions)
         else:
-            transactions = self.to_json(transactions)
+            transactions = Utils.to_json(transactions)
         # Returns the transactions
         return {"data": transactions}
 
@@ -203,9 +198,8 @@ class WalletActions(app_commands.Group):
                     await interaction.followup.send(f"Invoice {i['invoice']}: Your invoice status is {new_stat}")
                 else:
                     continue
-        json.dump(transactions, open(
-            transactions_obj["filepath"], "w"), indent=4)
-        await interaction.followup.send("Your invoices have been refreshed.")
+            
+            orderdb.update_one({"_id": str(interaction.user.id)}, {"$set": {f"reloads": transactions["reloads"]}})
 
     @refresh_invoices.error
     async def refresh_invoices_error(self, interaction: discord.Interaction, error):

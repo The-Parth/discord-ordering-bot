@@ -8,6 +8,9 @@ from discord import app_commands
 from extras import Checkers, Utils
 from dotenv import load_dotenv
 from mailer import Mailer
+import pymongo
+
+mongo_client = pymongo.MongoClient(os.environ.get("MONGO_URI"))
 
 
 load_dotenv()
@@ -102,17 +105,21 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
     """Places the order"""
     # Imports the actions module from the wallet
     from wallet import Actions
-    filepath = os.path.dirname(os.path.abspath(
-        __file__)) + "\data\carts\{0}.json".format(interaction.user.id)
-    # Makes it fit your OS
-    filepath = Utils.path_finder(filepath)
+    cartdb = mongo_client.DiscordCartDB.carts
 
+    cart = cartdb.find_one({"_id": str(interaction.user.id)})
+    print(cart)
     # Creates the cart if it doesn't exist
-    if not os.path.isfile(filepath):
-        json.dump({}, open(filepath, "w"), indent=2)
-
-    # Opens the cart
-    cart = json.load(open(filepath, "r"))
+    if cart is None:
+        cart = {
+            "_id": str(interaction.user.id),
+            "user_id": str(interaction.user.id),
+            "cart": {}
+        }
+        cartdb.insert_one(cart)
+    else:
+        cart = Utils.to_json(cart)
+    cart = cart["cart"]
 
     # Gets the user's email
     email = Actions().get_email(interaction.user.id)
@@ -124,6 +131,7 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
 
     # If the cart is empty, sends an ephemeral message
     if cart == {}:
+        print("Cart is empty")
         await interaction.response.send_message("Your cart is empty!", ephemeral=True)
         return
 
@@ -157,9 +165,6 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
                 if amount == 0:
                     # If the cart value is 0, sends an ephemeral message
                     await interaction.response.edit_message("We do not accept orders for free items only!")
-                    json.dump(json.load(open(limbo_path, "r")),
-                            open(filepath, "w"), indent=2)
-                    os.remove(limbo_path)
                     return
                 # Formats the menu string in the format of "Item(Price) x Quantity..........Total"
                 for item in f:
@@ -218,7 +223,7 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
                                        "json"))
             limbo_path = Utils.path_finder(limbo_path)
             json.dump(cart, open(limbo_path, "w"), indent=2)
-            os.remove(filepath)
+            cartdb.delete_one({"_id": str(interaction.user.id)})
             balance = Actions().get_wallet(
                 interaction.user.id)["data"]["balance"]
             if balance < amount:
@@ -227,8 +232,8 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
                                       description="You don't have enough balance to place this order!")
                 embed.add_field(name="Your Balance", value="₹{0}".format(balance), inline=False)
                 embed.add_field(name="Order Total", value="₹{0}".format(amount), inline=False)
-                json.dump(json.load(open(limbo_path, "r")),
-                            open(filepath, "w"), indent=2)
+                limbo_cart = json.load(open(limbo_path, "r"))
+                cartdb.insert_one({"_id": str(interaction.user.id), "user_id": str(interaction.user.id), "cart": limbo_cart})
                 os.remove(limbo_path)
                 await interaction.response.edit_message(embed=embed, view=None)
                 
