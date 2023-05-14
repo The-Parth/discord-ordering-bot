@@ -35,7 +35,7 @@ class Actions:
         walletdb.update_one({"_id": str(user_id)}, {"$set": {"email": email}})
 
     def get_email(self, user_id):
-        wallet = walletdb.find_one({"_id": str(user_id)})["email"]
+        wallet = self.get_wallet(user_id)["data"]["email"]
         print(wallet)
         if wallet == "":
             return None
