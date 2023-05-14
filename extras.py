@@ -33,6 +33,10 @@ class Utils():
         for i in range(0, len(ls), n):
             newlist.append(ls[i:i+n])
         return newlist
+    
+    def to_json(data):
+        import bson.json_util as json_util
+        return json_util.loads(json_util.dumps(data))
 
     def menu_paginate(menu_pages, page) -> discord.Embed:
         embed = discord.Embed(title="Menu",
