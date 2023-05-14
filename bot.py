@@ -155,11 +155,9 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
                 f = cart # The cart, used because I like it here
                 amount = Utils.get_cart_total(cart) # Gets the total cart value
                 if amount == 0:
-                    # If the cart value is 0, sends an ephemeral message
-                    await interaction.response.edit_message("We do not accept orders for free items only!")
-                    json.dump(json.load(open(limbo_path, "r")),
-                            open(filepath, "w"), indent=2)
-                    os.remove(limbo_path)
+                    # If the cart value is 0, sends an error message
+                    await interaction.response.edit_message(embed=None, view=None, content="You cannot place an order for ₹0!")
+                    #await interaction.response.edit_message(content="We do not accept orders for free items only!",view=None,embed=None)
                     return
                 # Formats the menu string in the format of "Item(Price) x Quantity..........Total"
                 for item in f:
