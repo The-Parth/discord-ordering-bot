@@ -10,7 +10,7 @@ import pymongo
 client = pymongo.MongoClient(os.environ.get("MONGO_URI"))
 db = client.DiscordDB
 walletdb = db.wallets
-orderdb = db.orders
+orderdb = db.transactions
 
 class Actions:
     

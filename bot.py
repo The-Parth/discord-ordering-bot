@@ -108,7 +108,6 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
     cartdb = mongo_client.DiscordCartDB.carts
 
     cart = cartdb.find_one({"_id": str(interaction.user.id)})
-    print(cart)
     # Creates the cart if it doesn't exist
     if cart is None:
         cart = {
@@ -131,7 +130,6 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
 
     # If the cart is empty, sends an ephemeral message
     if cart == {}:
-        print("Cart is empty")
         await interaction.response.send_message("Your cart is empty!", ephemeral=True)
         return
 
