@@ -46,6 +46,7 @@ def path_finder(path: str):
 botfile = os.path.dirname(os.path.abspath(
     __file__)) + "/bot.py"
 botfile = path_finder(botfile)
+botfile = '"' + botfile + '"'
 
 # Time in seconds before restarting the bot in seconds.
 restart_timer = 5
