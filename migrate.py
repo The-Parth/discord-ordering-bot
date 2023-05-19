@@ -2,12 +2,16 @@
 import pymongo
 import os
 import json
-from extras import Utils, Checkers
 from dotenv import load_dotenv
 import atexit
 
 load_dotenv()
 
+def path_finder(path):
+    if os.name == "nt":
+        return path.replace("/", "\\")
+    else:
+        return path.replace("\\", "/")
 """
 Migration tool for migrating user's old wallets and transactions
 Moves them from the current data folder to the MongoDB database
@@ -21,9 +25,10 @@ Users can just re-add the items to their cart
 """
 
 path = os.path.dirname(os.path.abspath(__file__)) + "/" + os.path.basename(__file__)
-path = Utils.path_finder(path)
-backpath = os.path.dirname(os.path.abspath(__file__)) + "/data/commands/"
-backpath = Utils.path_finder(backpath)
+path = path_finder(path)
+# We assume that the data is moved to the src folder
+backpath = os.path.dirname(os.path.abspath(__file__)) + "/src/data/commands/"
+backpath = path_finder(backpath)
 
 
 client = pymongo.MongoClient(os.environ.get("MONGO_URI"))
@@ -37,7 +42,7 @@ def wallet_migrate():
     print("Dropped wallets")    
     walletdb = db.wallets
     tpath = os.path.dirname(os.path.abspath(__file__)) + "/data/wallets/"
-    tpath = Utils.path_finder(tpath)
+    tpath = path_finder(tpath)
     wallet =[i for i in os.listdir(tpath) if i.endswith(".json")]
     for i in wallet:
         data = json.load(open(tpath + i))
@@ -51,7 +56,7 @@ def transaction_migrate():
     print("Dropped transactions")
     orderdb = db.transactions
     tpath = os.path.dirname(os.path.abspath(__file__)) + "/data/transactions/"
-    tpath = Utils.path_finder(tpath)
+    tpath = path_finder(tpath)
     transactions =[i for i in os.listdir(tpath) if i.endswith(".json")]
     for transaction in transactions: 
         i = json.load(open(tpath + transaction))
