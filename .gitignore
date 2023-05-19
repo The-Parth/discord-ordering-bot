@@ -2,6 +2,9 @@
 *.env
 dk
 __pycache__
+backups/
+data/
+trials/
 tempCodeRunnerFile.py
 src/tempCodeRunnerFile.py
 src/data/carts/limbo/*.json
