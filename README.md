@@ -17,7 +17,7 @@ A bot which allows people to buy stuff from you using a discord bot!
 Clone the project into it's seperate folder
 
 ```bash
-    git clone --single-branch --branch mongo https://github.com/The-Parth/discord-ordering-bot.git
+    git clone --single-branch --branch main https://github.com/The-Parth/discord-ordering-bot.git
 ```
 
 Grab all the required dependencies simply by running the main file.
