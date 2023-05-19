@@ -229,8 +229,10 @@ class CartActions(app_commands.Group):
                                 item = i['ITEM']
                                 break
                         # Adds the item to the cart
+                        rate : float
+                        rate = float(rate.strip())
                         cart[self.select_item.values[0]] = {
-                            "rate": int(rate.strip()),
+                            "rate": round(rate, 2),
                             "quantity": 1
                         }
                     else:

@@ -1,171 +1,178 @@
 [
-  {
-    "ITEM": "Coffee",
-    "COST": "20",
-    "DESC": "Caffeine rich morning starter",
-    "TIME": " 5 minutes",
-    "IMAG": "https://cdn.discordapp.com/attachments/1092763447994888253/1092765013967642634/coffee.jpg"
-  },
-  {
-    "ITEM": "Tea",
-    "COST": "10",
-    "DESC": "Herbal infusion",
-    "TIME": " 5 minutes",
-    "IMAG": "https://cdn.discordapp.com/attachments/1092763447994888253/1092765981190918214/tea.jpg"
-  },
-  {
-    "ITEM": "Cappuccino",
-    "COST": "30",
-    "DESC": "Espresso and steamed milk",
-    "TIME": " 10 minutes"
-  },
-  {
-    "ITEM": "Espresso",
-    "COST": "30",
-    "DESC": "Concentrated coffee",
-    "TIME": " 7 minutes",
-    "IMAG": "https://cdn.discordapp.com/attachments/1092763447994888253/1092801350028513310/Espresso.jpeg"
-  },
-  {
-    "ITEM": "Latte",
-    "COST": "40",
-    "DESC": "Espresso and steamed milk",
-    "TIME": " 10 minutes",
-    "IMAG": "https://cdn.discordapp.com/attachments/1092763447994888253/1092802686233096292/Latte.png"
-  },
-  {
-    "ITEM": "Hot Chocolate",
-    "COST": "40",
-    "DESC": "Chocolate, milk and sugar",
-    "TIME": " 10 minutes",
-    "IMAG": "https://cdn.discordapp.com/attachments/1092763447994888253/1092804553654685797/Hot_Chocolate.jpg"
-  },
-  {
-    "ITEM": "Hot Water",
-    "COST": "0",
-    "DESC": "Just hot water",
-    "TIME": " 5 minutes",
-    "IMAG": "https://cdn.discordapp.com/attachments/1092763447994888253/1092805026537279588/Hot_water.jpg"
-  },
-  {
-    "ITEM": "Chicken",
-    "COST": "120",
-    "DESC": "Classic Snack for the homies",
-    "TIME": " 14 minutes"
-  },
-  {
-    "ITEM": "Wings",
-    "COST": "110",
-    "DESC": "Chomp Chomp",
-    "TIME": " 15 minutes",
-    "IMAG": "https://cdn.discordapp.com/attachments/1092763447994888253/1092808049472852109/Chicken_Wings.jpg"
-  },
-  {
-    "ITEM": "Burger",
-    "COST": "100",
-    "DESC": "Classic American",
-    "TIME": " 10 minutes"
-  },
-  {
-    "ITEM": "Sandwich",
-    "COST": "90",
-    "DESC": "Two slices of bread enclosing veggies",
-    "TIME": " 10 minutes"
-  },
-  {
-    "ITEM": "Pizza",
-    "COST": "210",
-    "DESC": "Italian flatbread",
-    "TIME": " 15 minutes"
-  },
-  {
-    "ITEM": "Pasta",
-    "COST": "140",
-    "DESC": "Italian delicacy;Saucy",
-    "TIME": " 12 minutes"
-  },
-  {
-    "ITEM": "Soup",
-    "COST": "80",
-    "DESC": "Hot and tasty",
-    "TIME": " 10 minutes"
-  },
-  {
-    "ITEM": "Salad",
-    "COST": "80",
-    "DESC": "Healthy and tasty",
-    "TIME": " 10 minutes"
-  },
-  {
-    "ITEM": "Maggi",
-    "COST": "30",
-    "DESC": "Indian style noodles ",
-    "TIME": " 2 minutes"
-  },
-  {
-    "ITEM": "Momos",
-    "COST": "50",
-    "DESC": "Indian style dumplings",
-    "TIME": " 10 minutes"
-  },
-  {
-    "ITEM": "Dosa",
-    "COST": "60",
-    "DESC": "Indian style crepe",
-    "TIME": " 10 minutes"
-  },
-  {
-    "ITEM": "Idli",
-    "COST": "50",
-    "DESC": "Indian style cake",
-    "TIME": " 10 minutes"
-  },
-  {
-    "ITEM": "Vada",
-    "COST": "40",
-    "DESC": "Indian style fritters",
-    "TIME": " 10 minutes"
-  },
-  {
-    "ITEM": "Poha",
-    "COST": "40",
-    "DESC": "Indian style flattened rice",
-    "TIME": " 5 minutes"
-  },
-  {
-    "ITEM": "Choupsey",
-    "COST": "40",
-    "DESC": " What da dog doin",
-    "TIME": " 5 minutes"
-  },
-  {
-    "ITEM": "Biryani",
-    "COST": "150",
-    "DESC": "Indian style delicacy RICE",
-    "TIME": " 15 minutes"
-  },
-  {
-    "ITEM": "Chowmein",
-    "COST": "120",
-    "DESC": "Chinese style noodles",
-    "TIME": " 10 minutes"
-  },
-  {
-    "ITEM": "Sushi",
-    "COST": "150",
-    "DESC": "Japanese rice rolls",
-    "TIME": " 10 minutes"
-  },
-  {
-    "ITEM": "Ramen",
-    "COST": "120",
-    "DESC": "Japanese style noodles",
-    "TIME": " 11 minutes"
-  },
-  {
-    "ITEM": "Daal Chawal",
-    "COST": "100",
-    "DESC": "Indian style delicacy RICE",
-    "TIME": " 10 minutes"
-  }
+    {
+        "ITEM": "Coffee",
+        "COST": "20",
+        "DESC": "Caffeine rich morning starter",
+        "TIME": " 5 minutes",
+        "IMAG": "https://cdn.discordapp.com/attachments/1092763447994888253/1092765013967642634/coffee.jpg"
+    },
+    {
+        "ITEM": "Tea",
+        "COST": "10",
+        "DESC": "Herbal infusion",
+        "TIME": " 5 minutes",
+        "IMAG": "https://cdn.discordapp.com/attachments/1092763447994888253/1092765981190918214/tea.jpg"
+    },
+    {
+        "ITEM": "Cappuccino",
+        "COST": "30",
+        "DESC": "Espresso and steamed milk",
+        "TIME": " 10 minutes"
+    },
+    {
+        "ITEM": "Espresso",
+        "COST": "30",
+        "DESC": "Concentrated coffee",
+        "TIME": " 7 minutes",
+        "IMAG": "https://cdn.discordapp.com/attachments/1092763447994888253/1092801350028513310/Espresso.jpeg"
+    },
+    {
+        "ITEM": "Latte",
+        "COST": "40",
+        "DESC": "Espresso and steamed milk",
+        "TIME": " 10 minutes",
+        "IMAG": "https://cdn.discordapp.com/attachments/1092763447994888253/1092802686233096292/Latte.png"
+    },
+    {
+        "ITEM": "Hot Chocolate",
+        "COST": "40",
+        "DESC": "Chocolate, milk and sugar",
+        "TIME": " 10 minutes",
+        "IMAG": "https://cdn.discordapp.com/attachments/1092763447994888253/1092804553654685797/Hot_Chocolate.jpg"
+    },
+    {
+        "ITEM": "Hot Water",
+        "COST": "0",
+        "DESC": "Just hot water",
+        "TIME": " 5 minutes",
+        "IMAG": "https://cdn.discordapp.com/attachments/1092763447994888253/1092805026537279588/Hot_water.jpg"
+    },
+    {
+        "ITEM": "Chicken",
+        "COST": "120",
+        "DESC": "Classic Snack for the homies",
+        "TIME": " 14 minutes"
+    },
+    {
+        "ITEM": "Wings",
+        "COST": "110",
+        "DESC": "Chomp Chomp",
+        "TIME": " 15 minutes",
+        "IMAG": "https://cdn.discordapp.com/attachments/1092763447994888253/1092808049472852109/Chicken_Wings.jpg"
+    },
+    {
+        "ITEM": "Burger",
+        "COST": "100",
+        "DESC": "Classic American",
+        "TIME": " 10 minutes"
+    },
+    {
+        "ITEM": "Sandwich",
+        "COST": "90",
+        "DESC": "Two slices of bread enclosing veggies",
+        "TIME": " 10 minutes"
+    },
+    {
+        "ITEM": "Pizza",
+        "COST": "210",
+        "DESC": "Italian flatbread",
+        "TIME": " 15 minutes"
+    },
+    {
+        "ITEM": "Pasta",
+        "COST": "140",
+        "DESC": "Italian delicacy;Saucy",
+        "TIME": " 12 minutes"
+    },
+    {
+        "ITEM": "Soup",
+        "COST": "80",
+        "DESC": "Hot and tasty",
+        "TIME": " 10 minutes"
+    },
+    {
+        "ITEM": "Salad",
+        "COST": "80",
+        "DESC": "Healthy and tasty",
+        "TIME": " 10 minutes"
+    },
+    {
+        "ITEM": "Maggi",
+        "COST": "30",
+        "DESC": "Indian style noodles ",
+        "TIME": " 2 minutes"
+    },
+    {
+        "ITEM": "Momos",
+        "COST": "50",
+        "DESC": "Indian style dumplings",
+        "TIME": " 10 minutes"
+    },
+    {
+        "ITEM": "Dosa",
+        "COST": "60",
+        "DESC": "Indian style crepe",
+        "TIME": " 10 minutes"
+    },
+    {
+        "ITEM": "Idli",
+        "COST": "50",
+        "DESC": "Indian style cake",
+        "TIME": " 10 minutes"
+    },
+    {
+        "ITEM": "Vada",
+        "COST": "40",
+        "DESC": "Indian style fritters",
+        "TIME": " 10 minutes"
+    },
+    {
+        "ITEM": "Poha",
+        "COST": "40",
+        "DESC": "Indian style flattened rice",
+        "TIME": " 5 minutes"
+    },
+    {
+        "ITEM": "Choupsey",
+        "COST": "40",
+        "DESC": " What da dog doin",
+        "TIME": " 5 minutes"
+    },
+    {
+        "ITEM": "Biryani",
+        "COST": "150",
+        "DESC": "Indian style delicacy RICE",
+        "TIME": " 15 minutes"
+    },
+    {
+        "ITEM": "Chowmein",
+        "COST": "120",
+        "DESC": "Chinese style noodles",
+        "TIME": " 10 minutes"
+    },
+    {
+        "ITEM": "Sushi",
+        "COST": "150",
+        "DESC": "Japanese rice rolls",
+        "TIME": " 10 minutes"
+    },
+    {
+        "ITEM": "Ramen",
+        "COST": "120",
+        "DESC": "Japanese style noodles",
+        "TIME": " 11 minutes"
+    },
+    {
+        "ITEM": "Daal Chawal",
+        "COST": "100",
+        "DESC": "Indian style delicacy RICE",
+        "TIME": " 10 minutes"
+    },
+    {
+        "ITEM": "Onigiri",
+        "COST": "199.5",
+        "DESC": "Oishi Boru!",
+        "TIME": " 12 minutes",
+        "IMAG": "https://www.justonecookbook.com/wp-content/uploads/2017/09/Onigiri-Rice-Balls-3082-500x375.jpg"
+    }
 ]
