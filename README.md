@@ -10,13 +10,14 @@ A bot which allows people to buy stuff from you using a discord bot!
 - Integrated Fiat payments using Razorpay
 - Uses interactions from discord.py 2.0
 - In-built email address verification using SMTP
+- Now supports database storage using MongoDB
 
 ## Installation
 
 Clone the project into it's seperate folder
 
 ```bash
-    git clone https://github.com/The-Parth/discord-ordering-bot
+    git clone --single-branch --branch mongo https://github.com/The-Parth/discord-ordering-bot.git
 ```
 
 Grab all the required dependencies simply by running the main file.
@@ -57,6 +58,8 @@ To run this project, you will need to add the following environment variables to
 #### Razorpay Variables
 10. `RPAY_KEY_ID` = Key ID for Razorpay
 11. `RPAY_KEY_SECRET` = Key Secret for Razorpay
+#### MongoDB Variables
+12. `MONGO_URI` = MongoDB URI
 
 ## Usage
 
@@ -75,5 +78,9 @@ You can edit the code as per your requirements by reading the code yourself.
 To change the otp mails, edit data/carts/otp.html file and change the text as per your requirements.
 
 Razorpay was used in test mode. However, it should work in production mode as well.
+
+MongoDB, if not available, will require you to use the main branch instead of the mongo branch.
+
+This branch is under development and may not be stable.
 
 ####

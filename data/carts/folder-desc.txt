@@ -1,4 +1,0 @@
-All user carts are stored here.
-Format :- {user.id}.json
-
-Carts are as in samples 0.json and 1.json
