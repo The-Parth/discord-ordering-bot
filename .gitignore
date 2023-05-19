@@ -20,3 +20,5 @@ src/data/transactions/*.json
 !src/data/transactions/1.json
 !src/data/transactions/91.json
 src/trials/
+src/data/menus/*.json
+src/data/menus/newmenu.json

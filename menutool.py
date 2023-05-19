@@ -383,6 +383,7 @@ def change_position():
 def switch_good():
     """Case like menu system"""
     print("Menu Editor for Discord-Ordering-Bot by The-Parth")
+    print("If you want to reset the menu, type 'reset_menu'")
     input("Press enter to continue...")
     while True:
         print("1. Add item")
@@ -406,6 +407,20 @@ def switch_good():
             print("Exiting menu editor...")
             print("Goodbye!")
             break
+        elif choice == "reset_menu":
+            check = input("Are you sure you want to reset the menu? (Y/N): ")
+            if check.lower() == "n":
+                print("Cancelled!")
+                continue
+            check = input("Are you really sure? Type 'reset' to reset: ")
+            if check.lower() != "reset":
+                print("Cancelled!")
+                continue
+            print("Resetting menu...")
+            backup()
+            menu_saver([])
+            print("Menu reset!")
+            
         else:
             print("Invalid input!")
 
