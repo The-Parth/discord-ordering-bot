@@ -32,6 +32,7 @@ class Actions:
         
 
     def add_email(self, user_id, email):
+        self.make_wallet(user_id)
         walletdb.update_one({"_id": str(user_id)}, {"$set": {"email": email}})
 
     def get_email(self, user_id):

@@ -221,7 +221,7 @@ class Utils():
         """Modal to enter OTP, which is sent to the user's email"""
 
         def __init__(self):
-            super().__init__(timeout=600)
+            super().__init__(timeout=None)
             
         email = "your mail"
 
