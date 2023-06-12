@@ -3,3 +3,4 @@ python-dotenv
 requests>=2.28
 aiosmtplib==2.0.1
 pymongo[srv]==4.3.3
+psutil==5.9.5
