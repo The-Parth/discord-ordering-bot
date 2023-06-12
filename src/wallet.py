@@ -149,9 +149,9 @@ class WalletActions(app_commands.Group):
 
         # Sets the embed's thumbnail to the user's avatar
         embed.set_thumbnail(url=interaction.user.display_avatar.url)
-        # Sets the embed's author to the user's name and discriminator
-        embed.set_author(name=interaction.user.name+"#" +
-                         interaction.user.discriminator)
+        # Sets the embed's author to the user's name and discriminator if any
+        embed.set_author(name=interaction.user.name+("#" +
+                         interaction.user.discriminator if interaction.user.discriminator != "0" else ""))
         # Sets the embed's footer to the user's ID
         embed.set_footer(text="ID: {0}".format(wallet["user_id"]))
 

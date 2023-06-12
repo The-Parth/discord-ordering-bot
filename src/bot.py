@@ -189,7 +189,7 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
                     embeds.append(embed)
 
                 # Sets the title of the first embed
-                embeds[0].title = "Order for {0}".format(interaction.user.name)
+                embeds[0].title = "Order for {0}".format(interaction.user.global_name)
                 # Adds the total to the last embed
 
                 # Adds the user's details to the last embed
@@ -199,8 +199,8 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
                                             color=rand_color))
                 embeds[-1].description = "**User ID**: {0}\n".format(
                     interaction.user.id)
-                embeds[-1].description += "**Username:** {0}#{1}\n".format(
-                    interaction.user.name, interaction.user.discriminator)
+                embeds[-1].description += f"**Username**: {interaction.user.name}" + \
+                    ("#{0}\n".format(interaction.user.discriminator) if interaction.user.discriminator != "0" else "\n")
                 embeds[-1].description += "**Number of items:** {0}\n".format(
                     total_items)
                 embeds[-1].description += "**Email:** {0}\n".format(email)
@@ -243,7 +243,7 @@ async def place_order(interaction: discord.Interaction, instructions: str = None
             order_id = Utils.order_id_gen(interaction.user.id)+"_O"
         
             embeds[-1].description += "\n**Order ID:** {0}".format(order_id)
-            await channel.send("Order for {0}".format(interaction.user.name), embeds=embeds)
+            await channel.send("Order for {0}".format(interaction.user.global_name), embeds=embeds)
             embed = discord.Embed(title="Order placed!",
                                   description="Please wait for a staff member to process your order!",
                                   timestamp=datetime.datetime.now(),
@@ -364,9 +364,10 @@ async def tip(interaction: discord.Interaction,
                 await interaction.response.edit_message(embed=embed, view=None)
                 channel = bot.get_channel(feedback_channel)
                 # Sends a message in the feedback channel to show how much a user loves us
+                #print(type(interaction.user.discriminator))
                 fe = discord.Embed(
-                    title="New Tip from {0}#{1}".format(
-                        interaction.user.name, interaction.user.discriminator),
+                    title="New Tip from {0}".format(interaction.user.name) + \
+                        (f"#{interaction.user.discriminator}" if interaction.user.discriminator != "0" else ""),
                     description=f"**Amount:** ₹ {amount}\n",
                     timestamp=datetime.datetime.now(),
                     color=self.color
@@ -618,7 +619,7 @@ async def feedback(interaction: discord.Interaction):
             user = self.user
             # First embed, contains the user's avatar, name, discriminator and id
             embeds.append(discord.Embed(
-                title="Feedback from " + user.name + "#" + user.discriminator,
+                title="Feedback from " + user.name + (("#" + user.discriminator) if user.discriminator != "0" else ""),
                 description=f"UID : {user.id}",
                 timestamp=datetime.datetime.now(),
                 color=Utils.random_hex_color()
@@ -678,7 +679,8 @@ async def verify(interaction: discord.Interaction, email: str):
     filepath = Utils.path_finder(filepath)
     # Saves it to a string and replaces the placeholders with the user's name and the OTP
     content = open(filepath, "r").read().format(interaction.user.name,
-                                                interaction.user.name+"#"+interaction.user.discriminator, otp)
+                                                interaction.user.name+(("#"+interaction.user.discriminator) if interaction.user.discriminator != "0" else ""),
+                                                 otp)
     await interaction.response.send_message(f"Sending OTP to your email address ({email})", ephemeral=True)
     msg = await interaction.original_response()
     #  Sends the email

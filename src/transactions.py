@@ -186,15 +186,15 @@ class Transactions(app_commands.Group):
         bot: discord.Client
         user = await bot.fetch_user(data['user'])
 
-        embeds[0].title = "Order for {0}".format(user.name)
+        embeds[0].title = "Order for {0}".format(user.global_name)
         # Adds the total to the last embed
 
         embeds.append(discord.Embed(title="Order Summary",
                                     color=rand_color))
         embeds[-1].description = "**User ID**: {0}\n".format(
             user.id)
-        embeds[-1].description += "**Username:** {0}#{1}\n".format(
-            user.name, user.discriminator)
+        embeds[-1].description += f"**Username**: {user.name}" + \
+                    ("#{0}\n".format(user.discriminator) if user.discriminator != "0" else "\n")
         embeds[-1].description += "**Number of items:** {0}\n".format(
             total_items)
         embeds[-1].description += "**Email:** {0}\n".format(
