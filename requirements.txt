@@ -1,6 +1,6 @@
 discord>=2.1.0 , <2.3.0
 python-dotenv
-requests>=2.28
+requests>=2.32.4
 aiosmtplib==2.0.1
 pymongo[srv]==4.3.3
 psutil==5.9.5
